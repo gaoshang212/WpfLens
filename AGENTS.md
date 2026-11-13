@@ -171,7 +171,8 @@ The Inspector strips UTF-8 BOM (0xEF 0xBB 0xBF) before JSON parsing to prevent d
 - Traverses standard visual children via `VisualTreeHelper`
 - Also enumerates `AdornerLayer` adorners (e.g., Fluent.Ribbon Backstage)
 - Traverses into `Popup` child elements (separate visual trees)
-- `FindElements` searches across ALL open windows when no `root_handle` given
+- Without `root_handle`, `FindElements` searches windows and independent popup
+  presentation roots on the Inspector's UI thread, deduplicating overlapping trees
 - Query filters (AND semantics): `type_name` (partial), `element_name` (x:Name substring),
   `text` (visible text content — button captions, TextBlock text, window title, tooltip,
   AutomationProperties.Name; aggregated from shallow descendants), `property_filter`
@@ -181,10 +182,16 @@ The Inspector strips UTF-8 BOM (0xEF 0xBB 0xBF) before JSON parsing to prevent d
 - Default `max_depth` is 25 (configurable 1-100)
 
 ### Screenshot Capture
+- Prefer element waits and assertions for functional verification. Use the
+  [verification workflow](docs/TOOLS_REFERENCE.md#verification) for visual fallback,
+  per-Window/Popup captures and choosing when wider context is necessary.
 - Three modes: `auto` (default) selects screen for visible HwndHost content, render otherwise, and reports the selected mode. Explicit render rejects native content with recovery guidance. `render` uses `RenderTargetBitmap` + `VisualBrush` (handles
-  transforms, works when the window is covered, but cannot see Popups/menus);
-  `screen` uses GDI BitBlt of the on-screen pixels (includes open Popups, ComboBox
-  dropdowns, context menus and tooltips — requires the window visible and unobstructed)
+  transforms, works when the window is covered, and renders the selected visual
+  subtree). A main-window render does not merge independent popup trees; pass the
+  retrieved handle of rendered WPF popup content to render it separately.
+  `screen` uses GDI BitBlt of pixels within the selected
+  element's screen rectangle and requires the target visible and unobstructed.
+  Select rendered popup content by handle to capture it separately.
 - DPI-aware via `PresentationSource.FromVisual`
 - Downscales if exceeding `max_width`/`max_height` (default 1920x1080)
 - Returns MCP `ImageContentBlock` (base64 PNG) — Claude sees the image directly
@@ -275,7 +282,8 @@ shell call. No MCP handshake required; `--help` is self-documenting.
   - `touch` — native tap, long press, swipe, pinch and rotation; requires application touch support.
   - `click` — UI Automation invoke by default; `--physical` for OS mouse click
     (auto-scrolls into view); `--click-type double|right` for double/right clicks
-    (always physical; right opens context menus — capture with `screenshot --mode screen`).
+    (double/right use physical input even with `physical=false`; right opens
+    context menus, whose items can be found and asserted).
   - `select-item` — select in ComboBox/ListBox/ListView/TabControl by `--item-text`
     (visible text, substring) or `--index`; works with virtualized items; on failure
     the error lists the available items.

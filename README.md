@@ -564,7 +564,7 @@ For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITE
 | `wpf_get_element_properties` | Get all dependency properties of an element |
 | `wpf_find_elements` | Query elements by exact **AutomationId**, type, x:Name, **visible text**, property values and visibility; results include text, automation id, enabled/visible state and screen bounds |
 | `wpf_find_elements_deep` | Same query filters without result limit, across all windows including adorners/popups |
-| `wpf_capture_screenshot` | Capture a screenshot of the window or element (returns image); `mode='screen'` includes popups and menus; `full_content=true` with render mode captures scrollable content |
+| `wpf_capture_screenshot` | Capture a specific control, Window or rendered Popup content by handle (returns image); `mode='screen'` reads pixels within that target's rectangle; `full_content=true` with render mode captures scrollable content |
 | `wpf_report` | Aggregate current binding/validation errors, UI state counts and recent binding traces, with explicit scan limits and coverage |
 | `wpf_record` / `wpf_get_recording` | Start, stop, inspect or clear a workflow recording with stable selectors |
 | `wpf_assert` | Assert a dependency-property value; successful assertions are included in active recordings |
@@ -590,13 +590,19 @@ For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITE
 | `wpf_drag` | **Drag with the mouse** — source and target elements or relative displacement, local points, left/right/middle button, gradual movement and release cleanup. *State-changing.* |
 | `wpf_touch_gesture` | **Native touch** — tap, long press, swipe, two-finger pinch and rotation inside a visible element. Requires application touch support. *State-changing.* |
 | `wpf_select_item` | **Select an item** in a ComboBox/ListBox/ListView/TabControl by visible text or index — works with virtualized items. *State-changing.* |
-| `wpf_wait_for` | **Wait** until an element is visible/exists/enabled/hidden, polling in the target app — no sleep-and-retry loops. |
+| `wpf_wait_for_element` | **Wait** until an element is visible/exists/enabled/hidden, polling in the target app — no sleep-and-retry loops. |
 | `wpf_set_text` | **Set text/value** of a TextBox/ComboBox/PasswordBox — UI Automation `IValueProvider.SetValue` by default, `physical=true` to type via OS keyboard input. *State-changing.* |
 | `wpf_send_keys` | **Send a keyboard shortcut** (`Ctrl+S`, `Alt+F4`, `F5`, `Enter`, ...) to an element or the focused window. *State-changing.* |
 | `wpf_get_layout_info` | Get layout information |
 | `wpf_export_tree` | Export visual tree to XAML or JSON |
 
 For complete tool documentation, see [docs/TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md).
+
+Verify functional results with element searches, waits and exact property
+assertions first. When visual evidence is needed, capture the affected control,
+Window or rendered Popup content individually by handle; `screen` mode stays
+within that target's rectangle. Use wider context for placement or occlusion
+checks. See the [verification workflow](docs/TOOLS_REFERENCE.md#verification).
 
 All input actions accept `automation_id` instead of `element_handle`, including
 click, mouse movement, scrolling, drag, every touch gesture, selection, text and

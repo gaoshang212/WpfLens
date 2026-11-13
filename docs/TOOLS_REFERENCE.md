@@ -85,17 +85,63 @@ CLI replay and assertions return exit code 1 on failure. `get-recording --out`
 requires a new file; `export-test --out` requires a new or empty directory.
 Without `--out`, export returns the file-name/content map as JSON.
 
+## Verification
+
+Prefer element evidence for functional checks, then capture only the visual
+context needed to resolve the remaining question:
+
+1. Locate the control with `wpf_find_elements` and wait for asynchronous state
+   with `wpf_wait_for_element`. Open menus and expand submenus before searching.
+   Global searches include their independent presentation roots; an explicit
+   main-window `root_handle` keeps the search within that window's subtree.
+2. Use `wpf_assert` for exact dependency-property values such as `Text`, `Header`,
+   `IsEnabled`, `IsChecked` or `IsSubmenuOpen`. Read properties and
+   `wpf_get_layout_info` for other state and geometry. A failed assertion remains
+   a failed check; screenshots can help diagnose it without changing its result.
+3. When the required evidence is unavailable as an element/property, or visual
+   appearance needs confirmation, capture the affected control, Window or Popup
+   individually by `element_handle`. Capture each relevant object separately.
+   Use a wider context only for relationships such as popup placement or
+   cross-window occlusion, or when the user requests an overview. WPF
+   `IsVisible=true` alone does not establish that an element is unobstructed.
+
+### Screenshot scope
+
+For Popup content, select a rendered `ContextMenu`, `PopupRoot` or child with
+nonzero size. The `Popup` container itself may have zero size. A main-window
+capture does not cover menu content outside that window's rectangle.
+Once its content handle is found, a WPF-only Popup can be captured separately
+with `mode="auto"` or `mode="render"`. Use `screen` when actual desktop pixels
+or native hosted content are needed.
+
+`screen` selects the pixel source; with `element_handle`, it reads only that
+element's screen rectangle. It does not expand the capture to the whole desktop.
+For example, using fresh handles returned by a search:
+
+```text
+wpf_assert(element_handle="elem_save", property_name="IsEnabled", expected_value="True")
+# If visual evidence is needed, capture the relevant object separately:
+wpf_capture_screenshot(element_handle="elem_dialog", mode="auto")
+wpf_capture_screenshot(element_handle="elem_menu_content", mode="auto")
+```
+
 ## Screenshots
 
 ### wpf_capture_screenshot
 
-Use `element_handle` to select a control, or omit it for the main window.
+Use `element_handle` to select a control, Window or rendered Popup content.
+Omitting it selects the main window. Follow the [verification workflow](#verification)
+to choose the smallest useful scope.
 `mode="auto"` (default) selects screen capture when visible `HwndHost` content
 is present, otherwise render. The response includes the actual capture mode and
-explains any automatic switch. `mode="screen"` captures visible desktop pixels,
-including open popups and menus, and requires an unobstructed window.
+explains any automatic switch. `mode="screen"` captures visible desktop pixels
+within the selected element's rectangle, including any popup/menu pixels there,
+and requires a visible, unobstructed target.
 Explicit `mode="render"` renders off-screen but rejects native hosted content
-with recovery guidance. Full-content capture remains render-only, including when
+with recovery guidance. It renders the selected visual subtree: a main-window
+render does not merge independent popup trees, but the retrieved handle of WPF
+popup content can be passed directly to render that content separately.
+Full-content capture remains render-only, including when
 auto is requested, and cannot include native content.
 
 Set `full_content=true` with **render mode** to capture the content of a
@@ -168,7 +214,10 @@ wpflens click --pid 1234 --handle elem_42 --x 100 --y 60 --click-type right
 `wpf_move_mouse(element_handle?, x?, y?, hover_ms=500, automation_id?, root_handle?)` moves the OS pointer without
 clicking and waits 0–5000 ms while the app remains responsive. Useful for hover
 handlers and tooltips. Coordinates are paired local WPF DIPs, default center.
-Capture tooltips using screen mode.
+Verify tooltip content through element search and property assertions first.
+For visual confirmation, capture the rendered WPF tooltip content by handle using
+auto/render; use screen mode when actual desktop pixels are needed. Follow the
+[verification workflow](#verification).
 
 ### wpf_scroll
 
@@ -227,8 +276,9 @@ slider, find its `Thumb` descendant and use that as the source.
 The result contains `success`, `method: "Physical.Drag"`, `element_type`, `button`,
 `duration_ms`, `start` and `end` coordinates with `coordinate_space: "screen_pixels"`.
 Success means the input sequence was sent; it does **not** establish that the
-application accepted a drop. Read properties, use `wpf_wait_for`, or take a
-screenshot to verify the outcome.
+application accepted a drop. Verify the resulting element state with
+`wpf_wait_for_element` and `wpf_assert` first; use a scoped screenshot when visual
+evidence is needed, following the [verification workflow](#verification).
 
 Both endpoints must be on a monitor and unobstructed in the attached application.
 Elements are brought into view before resolving coordinates; the tool does not
@@ -310,7 +360,8 @@ The result contains `success`, `method: "Physical.Touch"`, `gesture`, `element_t
 `contact_count`, `duration_ms`, and `start`/`end` arrays in `screen_pixels`.
 Success means Windows accepted the contact sequence; it does not prove the app
 recognized a gesture. The tool leaves the target's touch handlers and compatibility
-settings unchanged. Query the resulting state or take a screenshot after the action.
+settings unchanged. Verify the resulting element state first; use a scoped
+screenshot when visual evidence is needed, following the [verification workflow](#verification).
 
 CLI equivalents:
 
@@ -484,6 +535,14 @@ The same filter is available in `wpf_find_elements_deep` and `wpf_wait_for_eleme
 Their CLI equivalents accept `--automation-id ID` and optional `--root HANDLE`.
 An ID alone is sufficient for deep search or waiting. Waits retain their usual
 any-match semantics; only direct clicking requires a unique match.
+
+Without `root_handle`, searches include windows and independent presentation
+roots on the Inspector's UI thread, including open context menus and expanded
+submenus. Open the menu first, then search with e.g.
+`wpf_find_elements(type_name="MenuItem", text="Save", visible_only=true)`.
+Elements reachable through both a window and a popup root are returned once.
+Supplying `root_handle` keeps the search within that subtree; a main-window
+handle does not automatically include a context menu's separate visual tree.
 
 Use `wpf_find_elements(automation_id="user.name")` to retrieve a handle for
 property inspection or other handle-based inspection tools, or

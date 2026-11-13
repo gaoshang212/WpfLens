@@ -79,8 +79,9 @@ right in the screenshot" into a precise, machine-checkable delta.
 
 **Design:** reuse `PropertyReader.GetLayoutInfo` + a curated set of visual properties;
 serialize a normalized snapshot keyed by element path; diff is a structural compare
-producing added/removed/changed entries. Pairs naturally with a before/after
-`wpf_capture_screenshot(mode='screen')` for the visual side.
+producing added/removed/changed entries. When visual evidence is also needed,
+capture the changed control, Window or Popup separately by handle, following the
+[verification workflow](TOOLS_REFERENCE.md#verification).
 
 ### 1c. `wpf_evaluate_binding` / "why is this the value?" ✅ *(v0.11.0)*
 
