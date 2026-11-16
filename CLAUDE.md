@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**WpfVisualTreeMcp** is an MCP (Model Context Protocol) server that enables AI agents to inspect running WPF applications in real-time. It exposes WPF visual tree inspection capabilities similar to Snoop WPF or Visual Studio's Live Visual Tree through the MCP protocol.
+**WpfLens** is an MCP (Model Context Protocol) server that enables AI agents to inspect running WPF applications in real-time. It exposes WPF visual tree inspection capabilities similar to Snoop WPF or Visual Studio's Live Visual Tree through the MCP protocol.
 
 ## Build Commands
 
@@ -191,7 +191,7 @@ The Inspector strips UTF-8 BOM (0xEF 0xBB 0xBF) before JSON parsing to prevent d
   net472/net48/net8 x86/x64, injection/self-hosting and scroll restoration.
 
 ### Logging
-- Server logs: `%LOCALAPPDATA%\WpfVisualTreeMcp\logs\mcp-server-YYYYMMDD.log`
+- Server logs: `%LOCALAPPDATA%\WpfLens\logs\mcp-server-YYYYMMDD.log`
 - Inspector debug: `%TEMP%\WpfInspector_Debug.log`
 - Bootstrapper debug: `%TEMP%\WpfInspectorBootstrapper.log`
 - stdout must remain clean for JSON-RPC protocol
@@ -223,7 +223,7 @@ The server uses the official Microsoft/Anthropic MCP SDK. Configure in `.mcp.jso
 ```json
 {
   "mcpServers": {
-    "wpf-visual-tree": {
+    "wpflens": {
       "command": "C:/path/to/WpfVisualTreeMcp.Server.exe",
       "args": []
     }
@@ -295,7 +295,7 @@ Run `WpfVisualTreeMcp.Server.exe help` for the full command list, or
 ## Release Checklist
 
 When adding MCP/CLI commands, update the repository companion skill at
-`plugins/wpfvisualtreemcp/skills/wpfvisualtreemcp/SKILL.md` as well as CLI help and
+`plugins/wpflens/skills/wpfvisualtreemcp/SKILL.md` as well as CLI help and
 the tool reference. The plugin's manifest version tracks its configuration and
 skill independently of the NuGet server. Its `dnx` launch resolves the stable
 server at startup; plugin/skill changes require marketplace refresh/reinstallation.
@@ -308,12 +308,12 @@ user's local installation. CLI `update` replaces binaries, not skill instruction
 2. Bump **both** `version` fields in `src/WpfVisualTreeMcp.Server/.mcp/server.json`
    (registry manifest — must match the NuGet package version exactly)
 3. Update `CHANGELOG.md` and `RELEASE_NOTES.md`
-4. Commit, tag `vX.Y.Z`, push tag → `release.yml` builds the server and Codex plugin
-   ZIPs, creates the GitHub release, packs the NuGet package and pushes it to
+4. Commit, tag `vX.Y.Z`, push tag → `release.yml` builds the server ZIP,
+   creates the GitHub release, packs the NuGet package and pushes it to
    nuget.org (trusted publishing / OIDC, using the `NUGET_USER` repo secret and
-   the nuget.org publishing policy; skipped with a notice if absent). The plugin
-   ZIP uses `git archive` to preserve its required dot-directories.
-   `scripts/test-plugin.py` installs/upgrades it using an isolated Codex profile;
+   the nuget.org publishing policy; skipped with a notice if absent).
+   `scripts/test-plugin.py` checks source-marketplace installation and upgrades
+   using an isolated Codex profile;
    it never opens a model session or changes the user's own plugin configuration.
 5. Once the package is live on nuget.org, run the manual **"Publish to MCP Registry"**
    workflow (GitHub OIDC, no secrets) to update registry.modelcontextprotocol.io
@@ -321,9 +321,8 @@ user's local installation. CLI `update` replaces binaries, not skill instruction
    built release checkout. It bundles the server runtime and a single-file x86
    helper, and generates metadata from the actual MCP tool list. Follow
    `docs/MCPB.md`, test the extracted archive, then attach the `.mcpb` to the
-   corresponding GitHub release. Use `-Compact` for clients with upload limits;
-   test the compact archive itself, including the gesture workflow. This
-   packaging step is currently manual.
+   corresponding GitHub release. The release workflow builds and verifies the
+   standard MCPB bundle automatically.
 
 ## Test Framework
 

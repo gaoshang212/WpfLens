@@ -33,7 +33,7 @@ jobs:
           if ($xml.Project.PropertyGroup.Version -ne $version) { throw "$project version does not match $version" }
         }
         $manifest = Get-Content src/WpfVisualTreeMcp.Server/.mcp/server.json -Raw | ConvertFrom-Json
-        $plugin = Get-Content plugins/wpfvisualtreemcp/.codex-plugin/plugin.json -Raw | ConvertFrom-Json
+        $plugin = Get-Content plugins/wpflens/.codex-plugin/plugin.json -Raw | ConvertFrom-Json
         if ($manifest.version -ne $version -or $manifest.packages[0].version -ne $version -or $plugin.version -ne $version) {
           throw 'MCP or plugin manifest version does not match the release tag'
         }
@@ -96,14 +96,8 @@ jobs:
 
     - name: Create release archive
       run: |
-        Compress-Archive -Path ./publish/* -DestinationPath ./WpfVisualTreeMcp-${{ github.ref_name }}-win-x64.zip
-
-    - name: Create Codex plugin archive
-      shell: pwsh
-      # git archive preserves the dot-directories required by the marketplace and plugin.
-      run: |
-        git archive --format=zip --output=./WpfVisualTreeMcp-${{ github.ref_name }}-codex-plugin.zip HEAD .agents/plugins plugins/wpfvisualtreemcp LICENSE
-        if ($LASTEXITCODE -ne 0) { throw 'Codex plugin archive failed' }
+        Copy-Item LICENSE ./publish/server/LICENSE
+        Compress-Archive -Path ./publish/* -DestinationPath ./WpfLens-${{ github.ref_name }}-win-x64.zip
 
     - uses: actions/setup-node@v4
       with:
@@ -113,11 +107,11 @@ jobs:
         python-version: '3.12'
     - name: Install tested Codex CLI
       run: npm install --global @openai/codex@0.162.1 --no-audit --no-fund
-    - name: Verify packaged plugin and skill upgrade
+    - name: Verify source plugin and skill upgrade
       shell: pwsh
       run: |
         $cli = Join-Path (npm root --global) '@openai/codex/bin/codex.js'
-        python ./scripts/test-plugin.py --codex-cli $cli --archive ./WpfVisualTreeMcp-${{ github.ref_name }}-codex-plugin.zip
+        python ./scripts/test-plugin.py --codex-cli $cli
 
     - name: Pack MCP NuGet package
       run: dotnet pack src/WpfVisualTreeMcp.Server/WpfVisualTreeMcp.Server.csproj --configuration Release --output ./artifacts/packages
@@ -128,26 +122,25 @@ jobs:
         $version = "${{ github.ref_name }}".TrimStart('v')
         $packages = @(Get-ChildItem ./artifacts/packages/*.nupkg)
         if ($packages.Count -ne 2) { throw 'Expected the MCP and Automation NuGet packages' }
-        ./scripts/Test-NuGetPayload.ps1 -Package "./artifacts/packages/WpfVisualTreeMcp.$version.nupkg"
+        ./scripts/Test-NuGetPayload.ps1 -Package "./artifacts/packages/WpfLens.Mcp.$version.nupkg"
 
-    - name: Build and verify full and compact MCPB bundles
+    - name: Build and verify MCPB bundle
       shell: pwsh
       run: |
         ./scripts/Build-McpBundle.ps1 -OutputDirectory ./artifacts/mcpb-full
-        ./scripts/Build-McpBundle.ps1 -OutputDirectory ./artifacts/mcpb-compact -Compact
 
-    - name: Test compact bundle workflow
+    - name: Test MCPB workflow
       shell: pwsh
       run: |
         $matrix = Get-ChildItem ./TestResults -Directory -Filter 'matrix-*' | Select-Object -First 1
         if (-not $matrix) { throw 'Integration matrix samples are missing' }
         $sample = Join-Path $matrix.FullName 'samples/net8.0-windows/x64/AutoInjection/SampleWpfApp.exe'
-        python ./scripts/test_workflow.py --server ./artifacts/mcpb-compact/bundle/server/WpfVisualTreeMcp.Server.exe --sample $sample
-        if ($LASTEXITCODE -ne 0) { throw 'Compact MCPB workflow test failed' }
+        python ./scripts/test_workflow.py --server ./artifacts/mcpb-full/bundle/server/WpfVisualTreeMcp.Server.exe --sample $sample
+        if ($LASTEXITCODE -ne 0) { throw 'MCPB workflow test failed' }
 
     # Trusted publishing (OIDC): requires a policy at nuget.org/account/trustedpublishing
-    # for repo faze79/WPFVisualTreeMcp, workflow release.yml, both packages
-    # WpfVisualTreeMcp and WpfVisualTreeMcp.Automation (including new-package scope),
+    # for repo gaoshang212/WpfLens, workflow release.yml, both packages
+    # WpfLens.Mcp and WpfLens.Automation (including new-package scope),
     # plus a repo secret NUGET_USER = the nuget.org profile name. Skipped with a notice
     # until NUGET_USER is set, so tagging still produces the GitHub release meanwhile.
     - name: NuGet login (OIDC)
@@ -194,11 +187,9 @@ jobs:
       with:
         body_path: release-notes.md
         files: |
-          ./WpfVisualTreeMcp-${{ github.ref_name }}-win-x64.zip
-          ./WpfVisualTreeMcp-${{ github.ref_name }}-codex-plugin.zip
+          ./WpfLens-${{ github.ref_name }}-win-x64.zip
           ./artifacts/packages/*.nupkg
           ./artifacts/mcpb-full/*.mcpb
-          ./artifacts/mcpb-compact/*.mcpb
         draft: false
         prerelease: ${{ contains(github.ref_name, '-') }}
       env:

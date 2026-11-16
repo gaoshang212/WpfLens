@@ -1,14 +1,14 @@
 {
-  "name": "WPFVisualTreeMcp",
+  "name": "WpfLens",
   "interface": {
-    "displayName": "WPFVisualTreeMcp"
+    "displayName": "WpfLens"
   },
   "plugins": [
     {
-      "name": "wpfvisualtreemcp",
+      "name": "wpflens",
       "source": {
         "source": "local",
-        "path": "./plugins/wpfvisualtreemcp"
+        "path": "./plugins/wpflens"
       },
       "policy": {
         "installation": "AVAILABLE",

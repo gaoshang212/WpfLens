@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - WpfLens
+
+- Establish independently maintained WpfLens distributions based on upstream v0.20.0.
+- Rename public packages to `WpfLens.Mcp` and `WpfLens.Automation`, CLI to `wpflens`,
+  and the Codex marketplace/plugin to `WpfLens` / `wpflens`.
+- Point plugin startup, CLI updates and exported xUnit SDK projects at WpfLens.
+- Retain implementation namespaces and assemblies for upstream synchronization.
+- Preserve upstream attribution and include LICENSE in distributed packages.
+- Remove Glama health-check packaging and Smithery-specific compact bundles and
+  server cards; retain the standard MCPB bundle for direct client installation.
+- Distribute the Codex plugin through the Git marketplace; remove its release ZIP
+  and validate source installation and skill upgrades in isolation.
+
 ## [Unreleased]
 
 ## [0.20.0] - 2026-10-25
@@ -213,9 +226,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Install the Codex plugin from Git: `codex plugin marketplace add https://github.com/faze79/WPFVisualTreeMcp.git`,
   then `codex plugin add wpfvisualtreemcp@WPFVisualTreeMcp` and start a new session.
-- For the plugin ZIP, extract it and run `codex plugin marketplace add .` from the
-  extracted root, then the same `plugin add` command. Requires Windows, a Codex
-  client with plugin support, .NET SDK 10.0.300+ within .NET 10, the .NET 8 runtime
+- The plugin requires Windows, a Codex client with plugin support, .NET SDK
+  10.0.300+ within .NET 10, the .NET 8 runtime
   and internet access. The plugin resolves the latest stable server from NuGet.
 - Existing Git marketplace users: run `codex plugin marketplace upgrade WPFVisualTreeMcp`,
   then reinstall with `codex plugin add wpfvisualtreemcp@WPFVisualTreeMcp` and start

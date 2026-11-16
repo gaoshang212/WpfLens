@@ -667,7 +667,7 @@ public static class CliRunner
     private static void PrintGeneralHelp()
     {
         Console.Out.WriteLine($@"
-WpfVisualTreeMcp CLI - inspect running WPF applications from the command line.
+WpfLens CLI - inspect running WPF applications from the command line.
 
 USAGE
   {Exe} <command> [options]

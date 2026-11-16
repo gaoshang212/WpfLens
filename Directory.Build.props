@@ -8,10 +8,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Authors>faze79</Authors>
-    <Company>faze79</Company>
-    <Product>WpfVisualTreeMcp</Product>
-    <Copyright>Copyright (c) 2025 faze79</Copyright>
+    <Authors>gaoshang212;faze79</Authors>
+    <Company>WpfLens</Company>
+    <Product>WpfLens</Product>
+    <Copyright>Copyright (c) 2025 faze79; Copyright (c) 2026 WpfLens contributors</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

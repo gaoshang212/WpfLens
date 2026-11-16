@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide will help you set up and start using WpfVisualTreeMcp to inspect WPF applications with AI coding agents.
+This guide will help you set up and start using WpfLens to inspect WPF applications with AI coding agents.
 
 ## Prerequisites
 
@@ -17,8 +17,8 @@ Before you begin, ensure you have:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/faze79/WpfVisualTreeMcp.git
-   cd WpfVisualTreeMcp
+   git clone https://github.com/gaoshang212/WpfLens.git
+   cd WpfLens
    ```
 
 2. Build the solution:
@@ -34,7 +34,7 @@ Before you begin, ensure you have:
 ### Option 2: .NET Tool Installation
 
 ```bash
-dotnet tool install -g WpfVisualTreeMcp
+dotnet tool install -g WpfLens.Mcp
 ```
 
 ### Option 3: Codex plugin
@@ -42,17 +42,17 @@ dotnet tool install -g WpfVisualTreeMcp
 Install the MCP configuration and companion skill together using the
 [Codex plugin instructions](../README.md#codex-plugin). This method requires
 the .NET 10 SDK in addition to the .NET 8 runtime and resolves the latest stable
-server from NuGet. Use the Git marketplace or extract the plugin ZIP from the
-release. Plugin and skill updates use the marketplace, separately from CLI updates.
+server from NuGet. Install from the Git marketplace. Plugin and skill updates
+use the marketplace, separately from CLI updates.
 
 ### Updating an installation
 
 Starting with v0.14.0:
 
 ```powershell
-wpfinspect update --check
-wpfinspect update
-wpfinspect update --status
+wpflens update --check
+wpflens update
+wpflens update --status
 ```
 
 For a portable copy, use `WpfVisualTreeMcp.Server.exe update` from its published
@@ -65,9 +65,9 @@ applications. `failed` includes a diagnostic log path and returns exit code 1.
 Close processes using the same installation before retrying.
 
 To get the command on an older global installation, run
-`dotnet tool update -g WpfVisualTreeMcp` once. For an older portable installation,
+`dotnet tool update -g WpfLens.Mcp` once. For an older portable installation,
 download the latest release. Source builds use the normal Git/build workflow;
-local manifest tools use `dotnet tool update WpfVisualTreeMcp` in their manifest
+local manifest tools use `dotnet tool update WpfLens.Mcp` in their manifest
 directory. See [update behavior and recovery](../README.md#updating).
 
 ## Configuration
@@ -82,14 +82,14 @@ Use the `claude mcp add` command for quick setup:
 
 ```bash
 # Build the server first
-cd WpfVisualTreeMcp
+cd WpfLens
 dotnet build -c Release
 
 # Add to current project only
-claude mcp add wpf-visual-tree -- C:/path/to/WpfVisualTreeMcp/src/WpfVisualTreeMcp.Server/bin/Release/net8.0/WpfVisualTreeMcp.Server.exe
+claude mcp add wpflens -- C:/path/to/WpfVisualTreeMcp/src/WpfVisualTreeMcp.Server/bin/Release/net8.0/WpfVisualTreeMcp.Server.exe
 
 # Or add globally (available in all projects)
-claude mcp add --scope user wpf-visual-tree -- C:/path/to/WpfVisualTreeMcp/src/WpfVisualTreeMcp.Server/bin/Release/net8.0/WpfVisualTreeMcp.Server.exe
+claude mcp add --scope user wpflens -- C:/path/to/WpfVisualTreeMcp/src/WpfVisualTreeMcp.Server/bin/Release/net8.0/WpfVisualTreeMcp.Server.exe
 ```
 
 Verify the server was added:
@@ -99,7 +99,7 @@ claude mcp list
 
 Remove the server if needed:
 ```bash
-claude mcp remove wpf-visual-tree
+claude mcp remove wpflens
 ```
 
 #### Option 2: JSON Configuration
@@ -109,7 +109,7 @@ Create or edit `.mcp.json` in your project root:
 ```json
 {
   "mcpServers": {
-    "wpf-visual-tree": {
+    "wpflens": {
       "command": "C:/path/to/WpfVisualTreeMcp/src/WpfVisualTreeMcp.Server/bin/Release/net8.0/WpfVisualTreeMcp.Server.exe",
       "args": []
     }
@@ -128,7 +128,7 @@ Restart Claude Code or reload the window after making changes.
    ```json
    {
      "mcpServers": {
-       "wpf-visual-tree": {
+       "wpflens": {
          "command": "C:/path/to/WpfVisualTreeMcp.Server.exe",
          "args": []
        }
@@ -146,7 +146,7 @@ Restart Claude Code or reload the window after making changes.
    {
      "mcpServers": [
        {
-         "name": "wpf-visual-tree",
+         "name": "wpflens",
          "command": "C:/path/to/WpfVisualTreeMcp.Server.exe"
        }
      ]
@@ -207,7 +207,7 @@ Build your application. The inspector will start automatically and listen for MC
 Either start your own WPF application (with the Inspector set up as above) or use the included sample:
 
 ```bash
-cd WpfVisualTreeMcp
+cd WpfLens
 dotnet run --project samples/SampleWpfApp
 ```
 

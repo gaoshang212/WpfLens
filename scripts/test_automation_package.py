@@ -73,21 +73,21 @@ def main():
     parser.add_argument("--gestures", action="store_true")
     args = parser.parse_args()
     packages = args.packages.resolve()
-    candidates = list(packages.glob("WpfVisualTreeMcp.Automation.*.nupkg"))
+    candidates = list(packages.glob("WpfLens.Automation.*.nupkg"))
     if len(candidates) != 1:
         raise ValueError("Use a package directory containing exactly one Automation .nupkg")
     with zipfile.ZipFile(candidates[0]) as package:
         names = package.namelist()
         for assembly in ("Automation", "Shared", "Injector"):
             assert f"lib/net8.0/WpfVisualTreeMcp.{assembly}.dll" in names, assembly
-        assert "buildTransitive/WpfVisualTreeMcp.Automation.targets" in names
+        assert "buildTransitive/WpfLens.Automation.targets" in names
         for architecture in ("x64", "x86"):
             for runtime_directory in ("", "coreclr/"):
                 assert f"payload/native/{architecture}/{runtime_directory}WpfVisualTreeMcp.Inspector.dll" in names
             assert f"payload/native/{architecture}/WpfInspectorBootstrapper.dll" in names
         assert "payload/native/x86/WpfInjectorHelper.exe" in names
         assert not any("Server.dll" in name or "ModelContextProtocol" in name for name in names)
-        manifest = ET.fromstring(package.read("WpfVisualTreeMcp.Automation.nuspec"))
+        manifest = ET.fromstring(package.read("WpfLens.Automation.nuspec"))
         version = manifest.find(".//{*}version").text
         dependencies = {item.attrib["id"] for item in manifest.findall(".//{*}dependency")}
         assert dependencies == {"Microsoft.Extensions.Logging.Abstractions"}, dependencies
@@ -111,7 +111,7 @@ def main():
       <OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework>
       <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
       </PropertyGroup><ItemGroup>
-      <PackageReference Include="WpfVisualTreeMcp.Automation" Version="{version}" />
+      <PackageReference Include="WpfLens.Automation" Version="{version}" />
       </ItemGroup></Project>""", encoding="utf-8")
     shutil.copy2(ROOT / "scripts" / "AutomationPackageSmoke.cs", consumer / "Program.cs")
     run(["dotnet", "build", project, "-c", "Release", "--verbosity", "quiet"], "consumer-build", work, env)

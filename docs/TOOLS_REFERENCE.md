@@ -21,7 +21,7 @@ Limits are 1–2000 elements, depth 1–100 and 1–500 findings, with a coopera
 three-second scan budget. Each omitted portion is identified in `truncationReasons`;
 an empty findings list with incomplete coverage is not a clean bill of health.
 
-CLI equivalent: `wpfinspect report --pid 1234 --root elem_00000001 --max 500 --depth 25 --max-findings 100`.
+CLI equivalent: `wpflens report --pid 1234 --root elem_00000001 --max 500 --depth 25 --max-findings 100`.
 
 ## Record, replay and export tests
 
@@ -72,13 +72,13 @@ bounded to 10000 elements and two seconds. Export formats are `xunit` (default)
 and `json`; there are no branches, loops or arbitrary script steps.
 
 ```powershell
-wpfinspect record start --pid 1234 --name "Save form"
+wpflens record start --pid 1234 --name "Save form"
 # Use find, set-text, click, select-item, drag, touch, wait-for, assert...
-wpfinspect assert --pid 1234 --handle elem_00000042 --property Text --expected Alice
-wpfinspect record stop --pid 1234
-wpfinspect get-recording --pid 1234 --out workflow.json
-wpfinspect export-test --pid 1234 --format xunit --out ./new-test-directory
-wpfinspect replay --pid 5678 --file workflow.json
+wpflens assert --pid 1234 --handle elem_00000042 --property Text --expected Alice
+wpflens record stop --pid 1234
+wpflens get-recording --pid 1234 --out workflow.json
+wpflens export-test --pid 1234 --format xunit --out ./new-test-directory
+wpflens replay --pid 5678 --file workflow.json
 ```
 
 CLI replay and assertions return exit code 1 on failure. `get-recording --out`
@@ -119,7 +119,7 @@ deadline. Bounds failures return errors. Application code that blocks the UI thr
 cannot be forcibly interrupted by the Inspector.
 
 ```powershell
-wpfinspect screenshot --pid 1234 --handle elem_42 --full-content --max-height 4000 --out full.png
+wpflens screenshot --pid 1234 --handle elem_42 --full-content --max-height 4000 --out full.png
 ```
 
 ## Mouse Interaction
@@ -158,9 +158,9 @@ Controls must be present in the tree; unrealized virtualized items are not searc
 Recorded clicks retain stable selectors and work in exported tests.
 
 ```powershell
-wpfinspect click --pid 1234 --automation-id form.clear
-wpfinspect click --pid 1234 --automation-id form.clear --root elem_dialog
-wpfinspect click --pid 1234 --handle elem_42 --x 100 --y 60 --click-type right
+wpflens click --pid 1234 --automation-id form.clear
+wpflens click --pid 1234 --automation-id form.clear --root elem_dialog
+wpflens click --pid 1234 --handle elem_42 --x 100 --y 60 --click-type right
 ```
 
 ### wpf_move_mouse
@@ -179,9 +179,9 @@ is -12000 through 12000 excluding zero. The application may scroll, zoom or igno
 input. It does not change keyboard focus to force a particular application action.
 
 ```powershell
-wpfinspect move-mouse --pid 1234 --handle elem_42 --x 100 --y 60 --hover-ms 800
-wpfinspect scroll --pid 1234 --handle elem_42 --delta -240
-wpfinspect scroll --pid 1234 --handle elem_42 --delta 120 --horizontal
+wpflens move-mouse --pid 1234 --handle elem_42 --x 100 --y 60 --hover-ms 800
+wpflens scroll --pid 1234 --handle elem_42 --delta -240
+wpflens scroll --pid 1234 --handle elem_42 --delta 120 --horizontal
 ```
 
 All physical pointer tools activate the app and require an interactive desktop.
@@ -301,9 +301,9 @@ is touch zoom; both require application touch/manipulation support:
 ```
 
 ```powershell
-wpfinspect drag --pid 1234 --automation-id Source --target-automation-id Destination
-wpfinspect touch --pid 1234 --automation-id Canvas --gesture swipe --delta-x 80
-wpfinspect touch --pid 1234 --automation-id Canvas --gesture pinch --scale 1.5
+wpflens drag --pid 1234 --automation-id Source --target-automation-id Destination
+wpflens touch --pid 1234 --automation-id Canvas --gesture swipe --delta-x 80
+wpflens touch --pid 1234 --automation-id Canvas --gesture pinch --scale 1.5
 ```
 
 The result contains `success`, `method: "Physical.Touch"`, `gesture`, `element_type`,

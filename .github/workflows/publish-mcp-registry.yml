@@ -5,8 +5,8 @@ name: Publish to MCP Registry
 # package version referenced in server.json is live on nuget.org — the registry
 # validates that the package exists and embeds a matching .mcp/server.json.
 #
-# Auth is GitHub OIDC: publishing to the io.github.faze79/* namespace is
-# authorized by this workflow running in a repo owned by faze79. No secrets needed.
+# Auth is GitHub OIDC: publishing to the io.github.gaoshang212/* namespace is
+# authorized by this workflow running in a repo owned by gaoshang212. No secrets needed.
 
 on:
   workflow_dispatch:

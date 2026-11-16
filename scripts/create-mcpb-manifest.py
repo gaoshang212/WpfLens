@@ -22,11 +22,11 @@ def main():
             client.close()
     if not tools or len({tool["name"] for tool in tools}) != len(tools):
         raise ValueError("The packaged MCP server must expose distinct tools")
-    repo = "https://github.com/faze79/WPFVisualTreeMcp"
+    repo = "https://github.com/gaoshang212/WpfLens"
     manifest = {
         "manifest_version": "0.3",
-        "name": "wpf-visual-tree",
-        "display_name": "WPFVisualTreeMcp",
+        "name": "wpflens",
+        "display_name": "WpfLens",
         "version": version,
         "description": "Inspect and automate local WPF apps: visual trees, binding diagnostics, screenshots, mouse hover/wheel/dragging, touch gestures and workflow tests.",
         "long_description": (
@@ -40,7 +40,7 @@ def main():
             "Install an updated MCPB through your client to update this bundle. CLI self-update is intended "
             "for the separate NuGet and portable installations, not client-managed MCPB files."
         ),
-        "author": {"name": "faze79", "url": "https://github.com/faze79"},
+        "author": {"name": "gaoshang212", "url": "https://github.com/gaoshang212"},
         "repository": {"type": "git", "url": repo + ".git"},
         "homepage": repo,
         "documentation": repo + "/blob/main/docs/MCPB.md",
@@ -57,10 +57,6 @@ def main():
         "tools_generated": False,
     }
     (args.bundle / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    # MCPB's tool entries allow only name/description. Smithery's release API
-    # needs full MCP Tool objects in a separate serverCard instead.
-    card = {"serverInfo": {"name": manifest["name"], "version": version}, "tools": tools}
-    (args.bundle.parent / "mcp-server-card.json").write_text(json.dumps(card, indent=2) + "\n", encoding="utf-8")
     print(f"MCPB manifest: v{version}, {len(tools)} tools")
 
 

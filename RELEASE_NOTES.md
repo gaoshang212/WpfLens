@@ -1,3 +1,12 @@
+# WpfLens release preparation
+
+WpfLens is not published yet. See [CHANGELOG.md](CHANGELOG.md) and
+[release setup](docs/PROMOTION.md) for the independent distribution changes.
+
+The notes below describe historical upstream releases.
+
+---
+
 # Release Notes
 
 ## v0.16.0 — Repeatable workflows, diagnostics and compatibility (2026-10-19)
@@ -50,10 +59,7 @@ Start a new Codex session, then ask it to inspect your running WPF application.
 The skill covers all 30 tools, including mouse dragging and touch gestures,
 and explains how to update the server, standalone CLI and plugin separately.
 
-The release also includes `WpfVisualTreeMcp-v0.15.0-codex-plugin.zip`. Extract it
-and run `codex plugin marketplace add .` from its root, followed by the same
-`plugin add` command. This archive contains the plugin and marketplace; it still
-downloads the latest stable server from NuGet. The Windows server ZIP and NuGet
+The Windows server ZIP and NuGet
 package are also updated to 0.15.0. Server behavior is unchanged from 0.14.0.
 
 The plugin requires Windows, a Codex client with plugin support, .NET SDK

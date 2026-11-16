@@ -19,7 +19,7 @@ internal sealed record UpdateInstallation(string Kind, string Directory, string?
             // Global tools and --tool-path installs both use <tool root>/.store/<package>/...
             if (ancestor.Name.Equals(".store", StringComparison.OrdinalIgnoreCase) &&
                 Path.GetRelativePath(ancestor.FullName, directory.FullName).Split(Path.DirectorySeparatorChar)[0]
-                    .Equals("wpfvisualtreemcp", StringComparison.OrdinalIgnoreCase))
+                    .Equals("wpflens.mcp", StringComparison.OrdinalIgnoreCase))
                 return new("dotnet-tool", ancestor.Parent!.FullName);
 
             if (ancestor.Name.Equals("bin", StringComparison.OrdinalIgnoreCase) && ancestor.Parent != null &&
@@ -31,7 +31,7 @@ internal sealed record UpdateInstallation(string Kind, string Directory, string?
         // A local manifest tool or dnx runs from a shared NuGet cache: never overwrite that cache.
         if (File.Exists(Path.Combine(directory.FullName, "DotnetToolSettings.xml")))
             return new("package-cache", directory.FullName,
-                "This executable runs from a package cache (local tool or dnx). For a local tool, run 'dotnet tool update WpfVisualTreeMcp' in its manifest directory; for dnx, select the latest package version.");
+                "This executable runs from a package cache (local tool or dnx). For a local tool, run 'dotnet tool update WpfLens.Mcp' in its manifest directory; for dnx, select the latest package version.");
 
         return new("portable", directory.FullName);
     }
@@ -45,8 +45,8 @@ internal sealed record UpdateRelease(string Version, string? DownloadUrl = null,
 /// </summary>
 internal static class SelfUpdater
 {
-    private const string PackageIndex = "https://api.nuget.org/v3-flatcontainer/wpfvisualtreemcp/index.json";
-    private const string Releases = "https://api.github.com/repos/faze79/WPFVisualTreeMcp/releases/latest";
+    private const string PackageIndex = "https://api.nuget.org/v3-flatcontainer/wpflens.mcp/index.json";
+    private const string Releases = "https://api.github.com/repos/gaoshang212/WpfLens/releases/latest";
     internal static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     internal static string CurrentVersion => typeof(SelfUpdater).Assembly
@@ -84,7 +84,7 @@ internal static class SelfUpdater
             throw new InvalidOperationException(installation.UnsupportedReason);
 
         using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("WpfVisualTreeMcp/" + CurrentVersion);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("WpfLens/" + CurrentVersion);
         var release = await GetLatestAsync(client, installation.Kind == "dotnet-tool" || installation.Kind == "package-cache");
         var available = IsNewer(release.Version, CurrentVersion);
         if (check || !available)
@@ -119,7 +119,7 @@ internal static class SelfUpdater
         }
         else
         {
-            Console.Error.WriteLine($"Downloading WpfVisualTreeMcp {release.Version}...");
+            Console.Error.WriteLine($"Downloading WpfLens {release.Version}...");
             var archive = Path.Combine(workDirectory, "release.zip");
             await DownloadAsync(client, release.DownloadUrl!, archive);
             payloadDirectory = Path.Combine(workDirectory, "payload");
@@ -188,7 +188,7 @@ internal static class SelfUpdater
     {
         var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.TrimEndingDirectorySeparator(
             Path.GetFullPath(installation.Directory)).ToUpperInvariant())))[..16];
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WpfVisualTreeMcp", "updates", key);
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WpfLens", "updates", key);
     }
 
     internal static Version StableVersion(string version)
@@ -224,12 +224,12 @@ internal static class SelfUpdater
         var tag = root.GetProperty("tag_name").GetString()!;
         var version = tag.StartsWith('v') ? tag[1..] : tag;
         StableVersion(version);
-        var name = $"WpfVisualTreeMcp-v{version}-win-x64.zip";
+        var name = $"WpfLens-v{version}-win-x64.zip";
         foreach (var asset in root.GetProperty("assets").EnumerateArray())
         {
             if (asset.GetProperty("name").GetString() != name) continue;
             var url = asset.GetProperty("browser_download_url").GetString()!;
-            var expectedUrl = $"https://github.com/faze79/WPFVisualTreeMcp/releases/download/{tag}/{name}";
+            var expectedUrl = $"https://github.com/gaoshang212/WpfLens/releases/download/{tag}/{name}";
             if (!string.Equals(url, expectedUrl, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Unexpected release download URL.");
             var digest = asset.TryGetProperty("digest", out var d) ? d.GetString() : null;
@@ -245,13 +245,13 @@ internal static class SelfUpdater
     {
         StableVersion(version);
         delay ??= Task.Delay;
-        var url = $"https://api.nuget.org/v3-flatcontainer/wpfvisualtreemcp/{version}/wpfvisualtreemcp.{version}.nupkg";
-        var package = Path.Combine(workDirectory, $"WpfVisualTreeMcp.{version}.nupkg");
+        var url = $"https://api.nuget.org/v3-flatcontainer/wpflens.mcp/{version}/wpflens.mcp.{version}.nupkg";
+        var package = Path.Combine(workDirectory, $"WpfLens.Mcp.{version}.nupkg");
         for (var attempt = 1; ; attempt++)
         {
             try
             {
-                Console.Error.WriteLine($"Downloading WpfVisualTreeMcp {version} from NuGet (attempt {attempt}/4)...");
+                Console.Error.WriteLine($"Downloading WpfLens {version} from NuGet (attempt {attempt}/4)...");
                 await DownloadAsync(client, url, package);
                 break;
             }

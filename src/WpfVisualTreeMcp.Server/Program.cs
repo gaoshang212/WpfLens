@@ -21,7 +21,7 @@ if (args.Length > 0 && CliRunner.IsCliCommand(args[0]))
 // Configure Serilog for file logging
 var logFilePath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-    "WpfVisualTreeMcp",
+    "WpfLens",
     "logs",
     "mcp-server-.log"
 );
@@ -51,7 +51,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    Log.Information("WPF Visual Tree MCP Server starting up");
+    Log.Information("WpfLens MCP Server starting up");
     Log.Information("Log file: {LogFile}", logFilePath.Replace("-.log", $"-{DateTime.Now:yyyyMMdd}.log"));
 
     // Build the host with MCP server and dependency injection
@@ -68,18 +68,21 @@ try
 
     // Add MCP server with stdio transport and auto-discover tools from this assembly
     builder.Services
-        .AddMcpServer()
+        .AddMcpServer(options => options.ServerInfo = new()
+        {
+            Name = "WpfLens", Version = SelfUpdater.CurrentVersion
+        })
         .WithStdioServerTransport()
         .WithToolsFromAssembly();
 
     // Build and run
     await builder.Build().RunAsync();
 
-    Log.Information("WPF Visual Tree MCP Server shutting down gracefully");
+    Log.Information("WpfLens MCP Server shutting down gracefully");
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "WPF Visual Tree MCP Server terminated unexpectedly");
+    Log.Fatal(ex, "WpfLens MCP Server terminated unexpectedly");
     throw;
 }
 finally

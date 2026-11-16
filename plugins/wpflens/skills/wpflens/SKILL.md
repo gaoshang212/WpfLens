@@ -1,11 +1,11 @@
 ---
-name: wpfvisualtreemcp
-description: Inspect and interact with running Windows WPF applications using the WPF Visual Tree MCP. Use for visual-tree inspection, binding/style diagnosis, diagnostic reports, screenshots, mouse dragging, touch gestures, recording/replaying workflows and exporting xUnit regression tests, or updating this plugin's server/skill. Not for WinUI, Avalonia, or static XAML review without a running WPF app.
+name: wpflens
+description: Inspect and interact with running Windows WPF applications using WpfLens. Use for visual-tree inspection, binding/style diagnosis, diagnostic reports, screenshots, mouse dragging, touch gestures, recording/replaying workflows and exporting xUnit regression tests, or updating this plugin's server/skill. Not for WinUI, Avalonia, or static XAML review without a running WPF app.
 ---
 
-# WPFVisualTreeMcp
+# WpfLens
 
-Use the plugin's `wpf-visual-tree` MCP tools. Tool names may carry a client-added prefix; discover the available tools and use their actual schemas.
+Use the plugin's `wpflens` MCP tools. Tool names may carry a client-added prefix; discover the available tools and use their actual schemas.
 
 ## Connect to the target
 
@@ -57,8 +57,8 @@ This plugin runs locally on Windows and starts the latest stable NuGet package t
 When an update is requested, identify which installation the user is using:
 
 - **This plugin's server:** restart its MCP server or Codex to resolve the newest stable NuGet package. Do not run self-update against the shared `dnx` cache.
-- **Plugin configuration and this skill:** refresh the configured marketplace (`codex plugin marketplace upgrade WPFVisualTreeMcp` for a Git-backed source), reinstall with `codex plugin add wpfvisualtreemcp@WPFVisualTreeMcp`, and start a new session. For a local marketplace, update its source checkout first. Updating the server does not update the skill.
-- **Separately installed CLI (v0.14.0+):** `wpfinspect update --check` compares versions; `wpfinspect update` schedules an update; `wpfinspect update --status` reports completion or failure. For a portable copy, invoke that exact `WpfVisualTreeMcp.Server.exe` path. Older global tools first need `dotnet tool update -g WpfVisualTreeMcp`. Source builds use their Git/build workflow.
+- **Plugin configuration and this skill:** refresh the configured marketplace (`codex plugin marketplace upgrade WpfLens` for a Git-backed source), reinstall with `codex plugin add wpflens@WpfLens`, and start a new session. For a local marketplace, update its source checkout first. Updating the server does not update the skill.
+- **Separately installed CLI (v0.14.0+):** `wpflens update --check` compares versions; `wpflens update` schedules an update; `wpflens update --status` reports completion or failure. For a portable copy, invoke that exact `WpfVisualTreeMcp.Server.exe` path. Older global tools first need `dotnet tool update -g WpfLens.Mcp`. Source builds use their Git/build workflow.
 
 CLI self-update changes only the invoked installation and is not an MCP tool. On Windows, the worker installs after the CLI exits: `scheduled` does not mean finished. Confirm `updated`; failures return exit code 1 and a log path. Close processes using the same files before retrying, without stopping the user's applications automatically. Restart the MCP client and previously inspected apps after an update to reload their server/Inspector.
 
@@ -67,7 +67,7 @@ For an available CLI fallback, use `help` or `<command> --help`. Mouse and touch
 ## Version compatibility
 
 Direct AutomationId targeting and scoped drag destinations require v0.18.0 or newer.
-For hand-written C# tests, use the `WpfVisualTreeMcp.Automation` NuGet package:
+For hand-written C# tests, use the `WpfLens.Automation` NuGet package:
 `WpfApplication.AttachAsync(pid)` and `app.ByAutomationId(id)` expose the same engine.
 `WaitForTextAsync("loaded")` compares the exact Text property and throws on timeout;
 client-side property waits and predicates are not serialized into recordings.

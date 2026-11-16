@@ -51,9 +51,9 @@ $config = Join-Path $root 'NuGet.Config'
 $escaped = [Security.SecurityElement]::Escape($feed)
 "<configuration><packageSources><clear/><add key=`"test`" value=`"$escaped`"/></packageSources></configuration>" | Set-Content -LiteralPath $config
 $toolPath = Join-Path $root "tool with spaces & quote'"
-& dotnet tool install WpfVisualTreeMcp --tool-path $toolPath --version $SeedVersion --configfile $config
+& dotnet tool install WpfLens.Mcp --tool-path $toolPath --version $SeedVersion --configfile $config
 if ($LASTEXITCODE -ne 0) { throw 'Seed tool installation failed.' }
-$latest = Invoke-UpdateAndWait (Join-Path $toolPath 'wpfinspect.exe')
+$latest = Invoke-UpdateAndWait (Join-Path $toolPath 'wpflens.exe')
 $listing = & dotnet tool list --tool-path $toolPath
 if ($LASTEXITCODE -ne 0 -or ($listing -join "`n") -notmatch [regex]::Escape($latest)) { throw 'Tool version mismatch.' }
 Write-Output "Dotnet tool update verified: $SeedVersion -> $latest"

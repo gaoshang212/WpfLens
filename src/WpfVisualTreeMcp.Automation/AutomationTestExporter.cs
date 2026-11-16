@@ -24,7 +24,7 @@ internal static class AutomationTestExporter
                 <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
               </PropertyGroup>
               <ItemGroup>
-                <PackageReference Include="WpfVisualTreeMcp.Automation" Version="{{packageVersion}}" />
+                <PackageReference Include="WpfLens.Automation" Version="{{packageVersion}}" />
                 <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
                 <PackageReference Include="xunit" Version="2.6.3" />
                 <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4" PrivateAssets="all" />

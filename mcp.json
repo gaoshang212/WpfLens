@@ -1,11 +1,11 @@
 {
-  "name": "wpf-visual-tree",
-  "version": "0.1.0",
+  "name": "wpflens",
+  "version": "0.20.0",
   "description": "MCP server for inspecting WPF application Visual Trees - enables AI agents to debug and analyze WPF UI hierarchies in real-time",
-  "author": "faze79",
+  "author": "gaoshang212",
   "license": "MIT",
-  "repository": "https://github.com/faze79/WpfVisualTreeMcp",
-  "homepage": "https://github.com/faze79/WpfVisualTreeMcp#readme",
+  "repository": "https://github.com/gaoshang212/WpfLens",
+  "homepage": "https://github.com/gaoshang212/WpfLens#readme",
   "keywords": [
     "mcp",
     "wpf",

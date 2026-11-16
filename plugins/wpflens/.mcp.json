@@ -1,10 +1,10 @@
 {
   "mcpServers": {
-    "wpf-visual-tree": {
+    "wpflens": {
       "command": "dotnet",
       "args": [
         "dnx",
-        "WpfVisualTreeMcp",
+        "WpfLens.Mcp",
         "--source",
         "https://api.nuget.org/v3/index.json",
         "--no-http-cache",

@@ -59,7 +59,7 @@ try {
     if ($plan.kind -eq 'dotnet-tool') {
         $config = Join-Path $plan.workDirectory 'NuGet.Config'
         # An argument array keeps spaces and shell metacharacters in paths literal.
-        $toolArgs = @('tool', 'update', 'WpfVisualTreeMcp', '--tool-path', $plan.targetDirectory,
+        $toolArgs = @('tool', 'update', 'WpfLens.Mcp', '--tool-path', $plan.targetDirectory,
             '--version', $plan.version, '--configfile', $config)
         & $plan.dotnet @toolArgs >> $logPath 2>&1
         if ($LASTEXITCODE -ne 0) { throw "dotnet tool update failed (exit $LASTEXITCODE). See $logPath" }

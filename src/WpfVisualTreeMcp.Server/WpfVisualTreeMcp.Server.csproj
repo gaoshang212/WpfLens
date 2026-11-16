@@ -9,22 +9,22 @@
     <AssemblyName>WpfVisualTreeMcp.Server</AssemblyName>
 
     <!-- Package metadata -->
-    <PackageId>WpfVisualTreeMcp</PackageId>
+    <PackageId>WpfLens.Mcp</PackageId>
     <Version>0.20.0</Version>
-    <Authors>faze79</Authors>
+    <Title>WpfLens MCP and CLI</Title>
     <Description>Inspect and drive WPF apps through MCP or CLI: visual trees, bindings, screenshots, mouse dragging and native touch gestures.</Description>
     <PackageTags>mcp;wpf;visual-tree;debugging;dotnet;ai-agents</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/faze79/WpfVisualTreeMcp</RepositoryUrl>
+    <RepositoryUrl>https://github.com/gaoshang212/WpfLens</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/faze79/WPFVisualTreeMcp</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/gaoshang212/WpfLens</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- NuGet MCP-server / dotnet-tool packaging: install with `dotnet tool install -g
-         WpfVisualTreeMcp` or run with `dnx WpfVisualTreeMcp`. McpServer package type
+         WpfLens.Mcp` or run with `dnx WpfLens.Mcp`. McpServer package type
          makes the server discoverable in the VS / VS Code MCP catalogs. -->
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>wpfinspect</ToolCommandName>
+    <ToolCommandName>wpflens</ToolCommandName>
     <PackageType>McpServer;DotnetTool</PackageType>
     <RollForward>Major</RollForward>
   </PropertyGroup>
@@ -32,6 +32,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Cli\UpdateWorker.ps1" LogicalName="WpfVisualTreeMcp.UpdateWorker.ps1" />
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
     <!-- MCP registry manifest, required at .mcp/server.json inside the package
          for registry.modelcontextprotocol.io NuGet validation -->
     <None Include=".mcp\server.json" Pack="true" PackagePath=".mcp\" />

@@ -100,11 +100,11 @@ public static class WorkflowTestExporter
         files["README.md"] = """
             # Recorded WPF workflow test
 
-            Install .NET 8 SDK and WpfVisualTreeMcp CLI with workflow support. In PowerShell:
+            Install .NET 8 SDK and WpfLens CLI with workflow support. In PowerShell:
 
             ```powershell
             $env:WPF_TEST_APP = 'C:\path\MyApp.exe'
-            $env:WPFINSPECT_PATH = 'C:\path\WpfVisualTreeMcp.Server.exe' # or absolute wpfinspect.exe path
+            $env:WPFINSPECT_PATH = 'C:\path\WpfVisualTreeMcp.Server.exe' # or absolute wpflens.exe path
             dotnet test
             ```
 

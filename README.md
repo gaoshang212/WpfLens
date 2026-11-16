@@ -1,9 +1,20 @@
-# WpfVisualTreeMcp
+# WpfLens
 
-<!-- mcp-name: io.github.faze79/wpf-visual-tree -->
+Inspect, diagnose, and automate running WPF applications.
 
-[![Build](https://github.com/faze79/WpfVisualTreeMcp/actions/workflows/build.yml/badge.svg)](https://github.com/faze79/WpfVisualTreeMcp/actions/workflows/build.yml)
-[![Release](https://img.shields.io/github/v/release/faze79/WpfVisualTreeMcp)](https://github.com/faze79/WpfVisualTreeMcp/releases)
+WpfLens is independently maintained by gaoshang212, based on
+[faze79/WPFVisualTreeMcp](https://github.com/faze79/WPFVisualTreeMcp).
+The WpfLens packages and releases are being prepared; the installation commands
+below apply once they are published. Until then, use the source build.
+
+Implementation namespaces, assembly names and the solution file retain their
+upstream names to simplify synchronization. The C# SDK package is
+`WpfLens.Automation`; its namespace remains `WpfVisualTreeMcp.Automation`.
+
+<!-- mcp-name: io.github.gaoshang212/wpf-lens -->
+
+[![Build](https://github.com/gaoshang212/WpfLens/actions/workflows/build.yml/badge.svg)](https://github.com/gaoshang212/WpfLens/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/gaoshang212/WpfLens)](https://github.com/gaoshang212/WpfLens/releases)
 [![.NET: 8, 9, 10](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-512BD4)](#c-test-sdk)
 [![WPF on .NET Framework: 4.7.2, 4.8, 4.8.1](https://img.shields.io/badge/.NET_Framework-4.7.2%20%7C%204.8%20%7C%204.8.1-512BD4)](#c-test-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -17,13 +28,13 @@
 
 [Watch the animated demo directly](docs/assets/demo-drag-touch.gif?raw=true).
 
-**New in [v0.20.0](https://github.com/faze79/WPFVisualTreeMcp/releases/tag/v0.20.0):**
+**Upstream baseline: [v0.20.0](https://github.com/faze79/WPFVisualTreeMcp/releases/tag/v0.20.0).**
 Verified support for **WPF on .NET 9, .NET 10 and .NET Framework 4.8.1**, on both
 x86 and x64. CI exercises automatic injection and self-hosting across all six
 supported target frameworks, plus the installed C# SDK from .NET 8, 9 and 10 test
 projects. The x86 injection helper can also use .NET 9 or 10 when .NET 8 is absent.
 
-The [`WpfVisualTreeMcp.Automation` C# SDK](https://www.nuget.org/packages/WpfVisualTreeMcp.Automation)
+The [`WpfLens.Automation` C# SDK](https://www.nuget.org/packages/WpfLens.Automation)
 drives virtualized DataGrids/TreeViews, waits for controls, manages WPF windows and
 streams property changes. The 38-tool MCP server and CLI share the inspection and
 input engine, including direct AutomationId targeting.
@@ -34,12 +45,12 @@ for the compatibility and screenshot work in [PR #22](https://github.com/faze79/
 
 ## Quickstart (60 seconds)
 
-1. Download and extract `WpfVisualTreeMcp-vX.Y.Z-win-x64.zip` from the [latest release](https://github.com/faze79/WPFVisualTreeMcp/releases/latest) (requires a [.NET 8, 9 or 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet)).
+1. Download and extract `WpfLens-vX.Y.Z-win-x64.zip` from the [latest release](https://github.com/gaoshang212/WpfLens/releases/latest) (requires a [.NET 8, 9 or 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet)).
 2. Register it in your MCP client — for Claude Code, add to `.mcp.json`:
    ```json
    {
      "mcpServers": {
-       "wpf-visual-tree": {
+       "wpflens": {
          "command": "C:/path/to/WpfVisualTreeMcp.Server.exe",
          "args": []
        }
@@ -49,7 +60,7 @@ for the compatibility and screenshot work in [PR #22](https://github.com/faze79/
 3. Ask your agent: *"Look at my running WPF app and tell me why the Save button is disabled."*
 
 Prefer the terminal? The same exe is a full CLI: `WpfVisualTreeMcp.Server.exe help`.
-From v0.14.0, run `wpfinspect update` (or `WpfVisualTreeMcp.Server.exe update`)
+From v0.14.0, run `wpflens update` (or `WpfVisualTreeMcp.Server.exe update`)
 to update the installation you launched. See [updating](#updating).
 Using Codex? Follow the [plugin installation](#codex-plugin) to install the MCP
 configuration and skill together.
@@ -74,7 +85,7 @@ release, including actual runtime-version checks. Framework 4.x target builds ru
 on the installed 4.8.1 runtime, since those runtimes update in place.
 
 ```powershell
-dotnet add package WpfVisualTreeMcp.Automation --version 0.20.0
+dotnet add package WpfLens.Automation --version 0.20.0
 ```
 
 ```csharp
@@ -107,7 +118,7 @@ See [installation, API examples and requirements](src/WpfVisualTreeMcp.Automatio
 
 ## Overview
 
-**WpfVisualTreeMcp** is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows AI coding agents (Codex, Claude Code, Cursor, GitHub Copilot) to inspect and interact with running WPF applications. Think of it as giving your AI assistant the same capabilities as tools like [Snoop WPF](https://github.com/snoopwpf/snoopwpf) or Visual Studio's Live Visual Tree.
+**WpfLens** is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows AI coding agents (Codex, Claude Code, Cursor, GitHub Copilot) to inspect and interact with running WPF applications. Think of it as giving your AI assistant the same capabilities as tools like [Snoop WPF](https://github.com/snoopwpf/snoopwpf) or Visual Studio's Live Visual Tree.
 
 ### Why This Matters
 
@@ -162,7 +173,7 @@ command list. Output is JSON on stdout; diagnostics go to stderr.
 
 **vs. the general tool categories:**
 
-| | **WpfVisualTreeMcp** | [Snoop](https://github.com/snoopwpf/snoopwpf) | [FlaUI](https://github.com/FlaUI/FlaUI) / WinAppDriver | Generic computer-use (screenshot + mouse) |
+| | **WpfLens** | [Snoop](https://github.com/snoopwpf/snoopwpf) | [FlaUI](https://github.com/FlaUI/FlaUI) / WinAppDriver | Generic computer-use (screenshot + mouse) |
 |---|---|---|---|---|
 | Consumer | **AI agents (MCP) + humans (CLI)** | Humans (GUI) | Test code (C#) | AI agents |
 | Visual tree, dependency properties | ✅ | ✅ | ❌ (UIA view only) | ❌ |
@@ -175,7 +186,7 @@ command list. Output is JSON on stdout; diagnostics go to stderr.
 
 **vs. other WPF MCP servers.** Most WPF MCP servers are built on **UI Automation** (FlaUI): they read the *accessibility* tree, and can only reach WPF internals — bindings, DataContext, ViewModel state — if you **install their in-process probe into the app you want to inspect**. This server takes the Snoop route instead: it **injects at runtime**, so it reads the *real* visual tree and diagnoses binding errors and DataContext **with zero changes to the target app** — nothing to add to your build, nothing to ship into production.
 
-| | **WpfVisualTreeMcp** | UIA-based servers (FlaUI) | Other injection-based servers |
+| | **WpfLens** | UIA-based servers (FlaUI) | Other injection-based servers |
 |---|---|---|---|
 | Sees the real visual tree (not just the UIA view) | ✅ injection | ❌ accessibility tree | ✅ |
 | Binding errors + DataContext **without a probe in the target** | ✅ | ❌ (needs in-process probe) | partial |
@@ -204,40 +215,37 @@ Building and running the complete compatibility suite requires the .NET 10 SDK,
 #### Option 1: .NET tool / NuGet (Recommended)
 
 ```bash
-dotnet tool install -g WpfVisualTreeMcp     # installs the `wpfinspect` command
+dotnet tool install -g WpfLens.Mcp     # installs the `wpflens` command
 ```
 
 The package is also published as an **MCP server package** (`PackageType: McpServer`),
 so MCP clients that support NuGet-hosted servers can launch it directly:
 
 ```bash
-dnx WpfVisualTreeMcp                        # runs the MCP stdio server
+dnx WpfLens.Mcp                        # runs the MCP stdio server
 ```
 
 #### Option 2: Download Release
 
-Download the latest release from [GitHub Releases](https://github.com/faze79/WpfVisualTreeMcp/releases):
+Download the latest release from [GitHub Releases](https://github.com/gaoshang212/WpfLens/releases):
 
-1. Download `WpfVisualTreeMcp-vX.X.X-win-x64.zip`
+1. Download `WpfLens-vX.X.X-win-x64.zip`
 2. Extract to a folder (e.g., `C:\Tools\WpfVisualTreeMcp`)
 3. The MCP server executable is `server/WpfVisualTreeMcp.Server.exe`
 
 #### Desktop extension (MCPB)
 
 Clients that support MCP bundles can import
-[`WpfVisualTreeMcp-v0.20.0-win-x64.mcpb`](https://github.com/faze79/WPFVisualTreeMcp/releases/download/v0.20.0/WpfVisualTreeMcp-v0.20.0-win-x64.mcpb).
+[`WpfLens-vX.Y.Z-win-x64.mcpb`](https://github.com/gaoshang212/WpfLens/releases).
 This Windows x64 bundle includes the server runtime and a self-contained x86
-injection helper. A smaller
-[`compact` bundle](https://github.com/faze79/WPFVisualTreeMcp/releases/download/v0.20.0/WpfVisualTreeMcp-v0.20.0-win-x64-compact.mcpb)
-provides the same tools with a reduced runtime for catalogs with upload limits.
-Update either bundle through the client's extension UI. See the
+injection helper. Update the bundle through the client's extension UI. See the
 [MCPB guide](docs/MCPB.md) for requirements, packaging and verification.
 
 #### Option 3: Build from Source
 
 ```bash
-git clone https://github.com/faze79/WpfVisualTreeMcp.git
-cd WpfVisualTreeMcp
+git clone https://github.com/gaoshang212/WpfLens.git
+cd WpfLens
 # Visual Studio Developer PowerShell (C++ v143 toolset + Windows SDK)
 ./scripts/Build-NativeBootstrapper.ps1
 dotnet build -c Release
@@ -250,9 +258,9 @@ requires the x86 .NET 8 runtime for the helper.
 ### Updating
 
 ```powershell
-wpfinspect update --check   # current/latest stable version; no installation changes
-wpfinspect update           # download and schedule installation automatically
-wpfinspect update --status  # confirm completion or inspect a failure
+wpflens update --check   # current/latest stable version; no installation changes
+wpflens update           # download and schedule installation automatically
+wpflens update --status  # confirm completion or inspect a failure
 
 # For an extracted release or a published folder, invoke that exact executable:
 C:\Tools\WpfVisualTreeMcp\server\WpfVisualTreeMcp.Server.exe update
@@ -261,7 +269,7 @@ C:\Tools\WpfVisualTreeMcp\server\WpfVisualTreeMcp.Server.exe update
 `update` is available from **v0.14.0**. For an older global tool, bootstrap it once:
 
 ```powershell
-dotnet tool update -g WpfVisualTreeMcp
+dotnet tool update -g WpfLens.Mcp
 ```
 
 For an older portable copy, extract the latest release and use its `server` folder.
@@ -281,7 +289,7 @@ executable is unlocked. A `scheduled` result means the worker was launched, not
 that installation finished. Run `update --status` until it reports `updated` or
 `failed`; a failed status returns exit code 1. JSON output includes the log path.
 Status, logs and portable backups are stored under
-`%LOCALAPPDATA%\WpfVisualTreeMcp\updates`, separately for each installation.
+`%LOCALAPPDATA%\WpfLens\updates`, separately for each installation.
 
 Close other MCP instances using the same files before updating. The updater does
 not stop applications: occupied files cause an error, and portable replacement
@@ -302,10 +310,10 @@ Use the `claude mcp add` command to add the server directly:
 
 ```bash
 # Add to current project only
-claude mcp add wpf-visual-tree -- C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe
+claude mcp add wpflens -- C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe
 
 # Add globally (available in all projects)
-claude mcp add --scope user wpf-visual-tree -- C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe
+claude mcp add --scope user wpflens -- C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe
 ```
 
 You can verify the server was added:
@@ -320,7 +328,7 @@ Create or edit `.mcp.json` in your project root:
 ```json
 {
   "mcpServers": {
-    "wpf-visual-tree": {
+    "wpflens": {
       "command": "C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe",
       "args": []
     }
@@ -335,7 +343,7 @@ Add to `~/.claude/settings.json`:
 ```json
 {
   "mcpServers": {
-    "wpf-visual-tree": {
+    "wpflens": {
       "command": "C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe",
       "args": []
     }
@@ -356,7 +364,7 @@ Add to your Cursor settings (`.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "wpf-visual-tree": {
+    "wpflens": {
       "command": "C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe",
       "args": []
     }
@@ -366,8 +374,8 @@ Add to your Cursor settings (`.cursor/mcp.json`):
 
 #### Codex plugin
 
-The repository includes a **WPFVisualTreeMcp** Codex plugin that installs the MCP
-configuration and a `wpfvisualtreemcp` skill together. It runs the **latest stable NuGet package**,
+The repository includes a **WpfLens** Codex plugin that installs the MCP
+configuration and a `wpflens` skill together. It runs the **latest stable NuGet package**,
 not a build of the checked-out source. No machine-specific executable path is
 required.
 
@@ -381,27 +389,24 @@ Prerequisites for this installation method:
   the x86 .NET 8 runtime as well.
 
 From the repository root, register the local marketplace and install the plugin.
-You can also download `WpfVisualTreeMcp-v0.20.0-codex-plugin.zip` from
-[GitHub Releases](https://github.com/faze79/WPFVisualTreeMcp/releases/latest),
-extract it, and run these commands from the extracted root:
 
 ```powershell
 codex plugin marketplace add .
-codex plugin add wpfvisualtreemcp@WPFVisualTreeMcp
+codex plugin add wpflens@WpfLens
 ```
 
 Restart Codex or open a new session, then ask it to inspect your running WPF app.
-The skill can also be invoked explicitly as `$wpfvisualtreemcp`.
+The skill can also be invoked explicitly as `$wpflens`.
 
-Alternatively, install directly from the upstream Git repository without cloning
+Alternatively, install directly from the WpfLens Git repository without cloning
 it manually:
 
 ```powershell
-codex plugin marketplace add https://github.com/faze79/WPFVisualTreeMcp.git
-codex plugin add wpfvisualtreemcp@WPFVisualTreeMcp
+codex plugin marketplace add https://github.com/gaoshang212/WpfLens.git
+codex plugin add wpflens@WpfLens
 ```
 
-Use `codex plugin list --marketplace WPFVisualTreeMcp` to check the installation. This is
+Use `codex plugin list --marketplace WpfLens` to check the installation. This is
 a repository marketplace; it does not imply publication in OpenAI's public
 plugin directory. If your client lacks `codex plugin add`, use a plugin-capable
 client or the direct MCP configuration below.
@@ -410,13 +415,13 @@ To use your own build, or to avoid the .NET 10 SDK requirement, register the
 published executable directly instead of installing the plugin:
 
 ```powershell
-codex mcp add wpf-visual-tree -- "C:/Tools/WpfVisualTreeMcp/server/WpfVisualTreeMcp.Server.exe"
+codex mcp add wpflens -- "C:/Tools/WpfVisualTreeMcp/server/WpfVisualTreeMcp.Server.exe"
 ```
 
 Replace the example with the actual executable path. Avoid enabling both this
 manual entry and the plugin at the same time, which would start two servers.
 
-Plugin files are under `plugins/wpfvisualtreemcp/`; the marketplace entry is
+Plugin files are under `plugins/wpflens/`; the marketplace entry is
 `.agents/plugins/marketplace.json`. The plugin uses Codex's supported
 `.codex-plugin/plugin.json` compatibility format. Its manifest version identifies
 the plugin configuration and skill, independently of the NuGet server version.
@@ -435,19 +440,19 @@ the launch on the tested .NET 10 command-line behavior.
 The compatibility MCP configuration uses `"cwd": "."`, which Codex resolves
 relative to the installed plugin root. This resolution was verified through
 `codex mcp list --json` after installation in an isolated profile.
-After editing local plugin files, rerun `codex plugin add wpfvisualtreemcp@WPFVisualTreeMcp`
+After editing local plugin files, rerun `codex plugin add wpflens@WpfLens`
 to refresh the installed copy, then open a new Codex session.
 
 For a Git-backed marketplace, update the plugin configuration and companion skill with:
 
 ```powershell
 codex plugin marketplace upgrade WPFVisualTreeMcp
-codex plugin add wpfvisualtreemcp@WPFVisualTreeMcp
+codex plugin add wpflens@WpfLens
 ```
 
 For a local marketplace, update its source checkout before reinstalling the plugin.
 The companion skill covers mouse dragging, touch gestures and update behavior.
-`wpfinspect update` updates a separately installed CLI or portable copy; it does
+`wpflens update` updates a separately installed CLI or portable copy; it does
 not refresh a plugin or its skill, and should not be used to modify the plugin's
 shared `dnx` package cache. See [Updating](#updating) for standalone installations.
 
@@ -673,7 +678,7 @@ touch/manipulations to react to those gestures.
 Shipped in **v0.13.0**: mouse dragging and native touch gestures, with MCP/CLI parity,
 sample demos, input cleanup, and real desktop validation across net48 x86/x64 and net8 x64.
 Shipped in **v0.14.0**: CLI self-update with version checks and installation status.
-Shipped in **v0.15.0**: Codex plugin marketplace, companion skill and plugin ZIP.
+Shipped in **v0.15.0**: Codex plugin marketplace and companion skill.
 Shipped in **v0.16.0**: workflow recording/replay/xUnit export, aggregate diagnostics,
 full-content screenshots and .NET Framework 4.7.2 compatibility.
 
@@ -701,8 +706,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/faze79/WpfVisualTreeMcp.git
-   cd WpfVisualTreeMcp
+   git clone https://github.com/gaoshang212/WpfLens.git
+   cd WpfLens
    ```
 
 2. Open in Visual Studio 2022 or VS Code:

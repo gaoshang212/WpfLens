@@ -1,10 +1,7 @@
 param(
     # Build the native bootstrapper and solution in this checkout first.
     [string]$SourceDirectory = (Split-Path $PSScriptRoot -Parent),
-    [Parameter(Mandatory)][string]$OutputDirectory,
-    # Smithery limits MCPB uploads to 25 MB. Keep reflected application models
-    # and tools intact while trimming unused runtime implementation code.
-    [switch]$Compact
+    [Parameter(Mandatory)][string]$OutputDirectory
 )
 $ErrorActionPreference = 'Stop'
 $source = (Resolve-Path -LiteralPath $SourceDirectory).Path
@@ -15,11 +12,6 @@ $server = Join-Path $bundle 'server'
 $helper = Join-Path $output 'helper'
 New-Item -ItemType Directory -Path $bundle -Force | Out-Null
 $publishOptions = @('-f', 'net8.0')
-if ($Compact) {
-    $publishOptions += @('-p:TargetFrameworks=net8.0', '-p:PublishTrimmed=true',
-        '-p:TrimMode=full', '-p:JsonSerializerIsReflectionEnabledByDefault=true',
-        "-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $PSScriptRoot 'McpBundleTrim.targets')")
-}
 
 Push-Location $source
 try {
@@ -56,13 +48,9 @@ try {
     python (Join-Path $PSScriptRoot 'create-mcpb-manifest.py') --source $source --bundle $bundle
     if ($LASTEXITCODE -ne 0) { throw 'MCP schema verification/manifest generation failed' }
     $manifest = Get-Content (Join-Path $bundle 'manifest.json') -Raw | ConvertFrom-Json
-    $suffix = if ($Compact) { '-compact' } else { '' }
-    $archive = Join-Path $output "WpfVisualTreeMcp-v$($manifest.version)-win-x64$suffix.mcpb"
+    $archive = Join-Path $output "WpfLens-v$($manifest.version)-win-x64.mcpb"
     npx --yes @anthropic-ai/mcpb@2.1.2 pack $bundle $archive
     if ($LASTEXITCODE -ne 0) { throw 'MCPB validation/pack failed' }
-    if ($Compact -and (Get-Item -LiteralPath $archive).Length -gt 25MB) {
-        throw 'Compact bundle exceeds the Smithery upload limit of 25 MB.'
-    }
     Get-FileHash -LiteralPath $archive -Algorithm SHA256
 } finally {
     Pop-Location

@@ -28,7 +28,7 @@ public class SelfUpdaterTests : IDisposable
     public void DetectsCustomToolRoot_AndDoesNotTreatItAsPortable()
     {
         var tools = Path.Combine(_root, "tools with spaces & quotes'");
-        var install = UpdateInstallation.Detect(Path.Combine(tools, ".store", "wpfvisualtreemcp", "0.14.0", "wpfvisualtreemcp", "0.14.0", "tools", "net8.0", "any"));
+        var install = UpdateInstallation.Detect(Path.Combine(tools, ".store", "wpflens.mcp", "0.14.0", "wpflens.mcp", "0.14.0", "tools", "net8.0", "any"));
         install.Kind.Should().Be("dotnet-tool");
         install.Directory.Should().Be(tools);
     }
@@ -46,8 +46,10 @@ public class SelfUpdaterTests : IDisposable
     [Fact]
     public async Task NugetLookup_SelectsHighestStableNumerically()
     {
-        using var client = Client("""{"versions":["0.9.0","0.14.0","0.15.0-preview.1","0.13.0"]}""");
+        var handler = new StubHandler("""{"versions":["0.9.0","0.14.0","0.15.0-preview.1","0.13.0"]}""");
+        using var client = new HttpClient(handler);
         (await SelfUpdater.GetLatestAsync(client, true)).Version.Should().Be("0.14.0");
+        handler.LastRequest.Should().Be("https://api.nuget.org/v3-flatcontainer/wpflens.mcp/index.json");
     }
 
     [Fact]
@@ -64,11 +66,11 @@ public class SelfUpdaterTests : IDisposable
             return Task.CompletedTask;
         });
         delays.Should().Equal(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20));
-        File.ReadAllText(Path.Combine(directory, "WpfVisualTreeMcp.0.15.0.nupkg")).Should().Be("package bytes");
+        File.ReadAllText(Path.Combine(directory, "WpfLens.Mcp.0.15.0.nupkg")).Should().Be("package bytes");
         var config = System.Xml.Linq.XDocument.Load(Path.Combine(directory, "NuGet.Config"));
         config.Descendants("add").Single().Attribute("value")!.Value.Should().Be(directory);
         handler.Requests.Should().HaveCount(3).And.OnlyContain(uri => uri ==
-            "https://api.nuget.org/v3-flatcontainer/wpfvisualtreemcp/0.15.0/wpfvisualtreemcp.0.15.0.nupkg");
+            "https://api.nuget.org/v3-flatcontainer/wpflens.mcp/0.15.0/wpflens.mcp.0.15.0.nupkg");
     }
 
     [Theory]
@@ -83,21 +85,38 @@ public class SelfUpdaterTests : IDisposable
         await action.Should().ThrowAsync<HttpRequestException>();
         handler.Requests.Should().HaveCount(requests);
         File.Exists(Path.Combine(_root, "NuGet.Config")).Should().BeFalse();
-        File.Exists(Path.Combine(_root, "WpfVisualTreeMcp.0.15.0.nupkg")).Should().BeFalse();
+        File.Exists(Path.Combine(_root, "WpfLens.Mcp.0.15.0.nupkg")).Should().BeFalse();
     }
 
     [Theory]
     [InlineData("https://example.com/untrusted.zip", "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
-    [InlineData("https://github.com/faze79/WPFVisualTreeMcp/releases/download/v0.14.0/WpfVisualTreeMcp-v0.14.0-win-x64.zip", null)]
+    [InlineData("https://github.com/faze79/WPFVisualTreeMcp/releases/download/v0.14.0/WpfLens-v0.14.0-win-x64.zip", "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("https://github.com/gaoshang212/WpfLens/releases/download/v0.14.0/WpfLens-v0.14.0-win-x64.zip", null)]
     public async Task ReleaseLookup_RejectsUnexpectedUrlOrMissingDigest(string url, string? digest)
     {
         using var client = Client(JsonSerializer.Serialize(new
         {
             tag_name = "v0.14.0", draft = false, prerelease = false,
-            assets = new[] { new { name = "WpfVisualTreeMcp-v0.14.0-win-x64.zip", browser_download_url = url, digest } }
+            assets = new[] { new { name = "WpfLens-v0.14.0-win-x64.zip", browser_download_url = url, digest } }
         }));
         var action = () => SelfUpdater.GetLatestAsync(client, false);
         await action.Should().ThrowAsync<InvalidDataException>();
+    }
+
+    [Fact]
+    public async Task ReleaseLookup_UsesForkAndAcceptsItsBrandedAsset()
+    {
+        const string url = "https://github.com/gaoshang212/WpfLens/releases/download/v0.20.0/WpfLens-v0.20.0-win-x64.zip";
+        var handler = new StubHandler(JsonSerializer.Serialize(new
+        {
+            tag_name = "v0.20.0", draft = false, prerelease = false,
+            assets = new[] { new { name = "WpfLens-v0.20.0-win-x64.zip", browser_download_url = url, digest = "sha256:" + new string('a', 64) } }
+        }));
+        using var client = new HttpClient(handler);
+        var release = await SelfUpdater.GetLatestAsync(client, false);
+        release.DownloadUrl.Should().Be(url);
+        release.Version.Should().Be("0.20.0");
+        handler.LastRequest.Should().Be("https://api.github.com/repos/gaoshang212/WpfLens/releases/latest");
     }
 
     [Fact]
@@ -234,8 +253,13 @@ public class SelfUpdaterTests : IDisposable
     private static HttpClient Client(string json) => new(new StubHandler(json));
     private sealed class StubHandler(string json) : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) });
+        public string? LastRequest { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            LastRequest = request.RequestUri!.AbsoluteUri;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) });
+        }
     }
 
     private sealed class PackageHandler(params HttpStatusCode[] statuses) : HttpMessageHandler
