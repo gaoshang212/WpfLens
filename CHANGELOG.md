@@ -7,12 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-16
+
 ### Fixed
 
 - Element searches now discover open context menus and expanded submenus through
   independent WPF presentation roots on the Inspector's UI thread. Ordinary and
   deep searches deduplicate overlapping popup subtrees before applying result
   limits; explicit root handles retain their subtree scope.
+- Enable Windows targeting throughout Linux code-quality checks and reuse the
+  restored dependencies when loading the formatting workspace.
+
+### Changed
+
+- Prefer element waits and exact property assertions in the companion skill and
+  verification documentation, with separate control, Window or Popup screenshots
+  when visual evidence is needed.
+- Clarify that WPF popup content can be rendered individually by handle and that
+  screen capture is limited to the selected element's rectangle.
 
 ## [0.21.0] - 2026-11-16
 

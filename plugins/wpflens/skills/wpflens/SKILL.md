@@ -74,10 +74,10 @@ For an available CLI fallback, use `help` or `<command> --help`. Mouse and touch
 
 ## Version compatibility
 
-Independent context-menu/submenu search roots require the popup-search fix on
-current source `main`; the `v0.21.0` tag predates it. On that older Inspector, an
-empty menu search does not establish that the menu is closed. Report the search
-coverage limit and use a scoped screenshot if a rendered content handle is available.
+Independent context-menu/submenu search roots require Inspector v0.22.0 or newer.
+On an older Inspector, an empty menu search does not establish that the menu is
+closed. Report the search coverage limit and use a scoped screenshot if a rendered
+content handle is available.
 
 Direct AutomationId targeting and scoped drag destinations require v0.18.0 or newer.
 For hand-written C# tests, use the `WpfLens.Automation` NuGet package:

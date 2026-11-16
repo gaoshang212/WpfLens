@@ -111,6 +111,8 @@ jobs:
 
   code-quality:
     runs-on: ubuntu-latest
+    env:
+      EnableWindowsTargeting: 'true'
 
     steps:
     - name: Checkout
@@ -121,13 +123,13 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    # Server transitively references the WPF (net8.0-windows) Inspector, so a
-    # restore/format on Linux needs Windows targeting enabled.
+    # The job-wide property enables Windows references for both restore and
+    # format's workspace loading on Linux.
     - name: Restore dependencies
       run: dotnet restore src/WpfVisualTreeMcp.Server/WpfVisualTreeMcp.Server.csproj -p:EnableWindowsTargeting=true
 
     - name: Check formatting
-      run: dotnet format src/WpfVisualTreeMcp.Server/WpfVisualTreeMcp.Server.csproj --verify-no-changes --verbosity diagnostic
+      run: dotnet format src/WpfVisualTreeMcp.Server/WpfVisualTreeMcp.Server.csproj --no-restore --verify-no-changes --verbosity diagnostic
       continue-on-error: true
 
   # Build verification for .NET Framework projects (Windows only)

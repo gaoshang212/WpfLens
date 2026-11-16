@@ -85,7 +85,7 @@ release, including actual runtime-version checks. Framework 4.x target builds ru
 on the installed 4.8.1 runtime, since those runtimes update in place.
 
 ```powershell
-dotnet add package WpfLens.Automation --version 0.21.0
+dotnet add package WpfLens.Automation --version 0.22.0
 ```
 
 ```csharp

@@ -1,3 +1,33 @@
+# WpfLens 0.22.0
+
+Find and verify open context menus and expanded submenus through the same element
+search tools used for ordinary WPF controls.
+
+## Changes
+
+- Discover independent popup presentation roots on the Inspector's UI thread.
+  Ordinary and deep searches deduplicate overlapping subtrees before applying
+  result limits; explicit root handles keep their subtree scope.
+- Prefer element waits and exact property assertions for functional checks.
+  Capture individual controls, Windows or rendered Popup content by handle when
+  visual evidence is needed. WPF popup content supports separate render capture;
+  screen mode reads only the selected target's screen rectangle.
+- Enable Windows targeting for the Linux formatting workspace and reuse restored
+  dependencies during code-quality checks.
+
+## Installation
+
+```powershell
+dotnet tool install --global WpfLens.Mcp --version 0.22.0
+dotnet add package WpfLens.Automation --version 0.22.0
+```
+
+Existing CLI installations can use `wpflens update`. Refresh the Codex marketplace
+and reinstall `wpflens@WpfLens` to receive the updated companion skill. Restart
+the MCP server and restart/reattach inspected applications to load the new Inspector.
+
+---
+
 # WpfLens 0.21.0
 
 The first independently maintained WpfLens release, based on
