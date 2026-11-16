@@ -4,8 +4,8 @@ Inspect, diagnose, and automate running WPF applications.
 
 WpfLens is independently maintained by gaoshang212, based on
 [faze79/WPFVisualTreeMcp](https://github.com/faze79/WPFVisualTreeMcp).
-The WpfLens packages and releases are being prepared; the installation commands
-below apply once they are published. Until then, use the source build.
+WpfLens 0.21.0 is the first independent release. Install the `WpfLens.Mcp`
+tool or use the `WpfLens.Automation` SDK; the public CLI command is `wpflens`.
 
 Implementation namespaces, assembly names and the solution file retain their
 upstream names to simplify synchronization. The C# SDK package is
@@ -85,7 +85,7 @@ release, including actual runtime-version checks. Framework 4.x target builds ru
 on the installed 4.8.1 runtime, since those runtimes update in place.
 
 ```powershell
-dotnet add package WpfLens.Automation --version 0.20.0
+dotnet add package WpfLens.Automation --version 0.21.0
 ```
 
 ```csharp

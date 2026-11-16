@@ -1,8 +1,8 @@
 # WpfLens.Automation
 
 The WpfLens C# SDK package retains the `WpfVisualTreeMcp.Automation` namespace
-and assembly name for compatibility with upstream source. Packages are being
-prepared; use a source reference until the first WpfLens publication.
+and assembly name for compatibility with upstream source. Install
+`WpfLens.Automation` 0.21.0 from NuGet.
 
 Write C# tests against running Windows WPF applications. The package includes the
 Inspector, x64/x86 native bootstrapper and x86 injection helper. It talks directly
@@ -222,7 +222,7 @@ property subscriptions remain C# test setup/teardown, not recorded workflow step
 Install from nuget.org in your test project:
 
 ```powershell
-dotnet add YourTests.csproj package WpfLens.Automation --version 0.20.0
+dotnet add YourTests.csproj package WpfLens.Automation --version 0.21.0
 ```
 
 The Inspector and native bootstrapper are included. Cross-architecture injection

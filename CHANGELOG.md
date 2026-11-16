@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - WpfLens
+## [Unreleased]
+
+## [0.21.0] - 2026-11-16
+
+### Changed
 
 - Establish independently maintained WpfLens distributions based on upstream v0.20.0.
 - Rename public packages to `WpfLens.Mcp` and `WpfLens.Automation`, CLI to `wpflens`,
@@ -17,8 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   server cards; retain the standard MCPB bundle for direct client installation.
 - Distribute the Codex plugin through the Git marketplace; remove its release ZIP
   and validate source installation and skill upgrades in isolation.
-
-## [Unreleased]
 
 ## [0.20.0] - 2026-10-25
 

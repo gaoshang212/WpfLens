@@ -1,6 +1,6 @@
 {
   "name": "wpflens",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "MCP server for inspecting WPF application Visual Trees - enables AI agents to debug and analyze WPF UI hierarchies in real-time",
   "author": "gaoshang212",
   "license": "MIT",

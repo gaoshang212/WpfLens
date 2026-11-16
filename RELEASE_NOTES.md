@@ -1,7 +1,40 @@
-# WpfLens release preparation
+# WpfLens 0.21.0
 
-WpfLens is not published yet. See [CHANGELOG.md](CHANGELOG.md) and
-[release setup](docs/PROMOTION.md) for the independent distribution changes.
+The first independently maintained WpfLens release, based on
+[faze79/WPFVisualTreeMcp v0.20.0](https://github.com/faze79/WPFVisualTreeMcp/releases/tag/v0.20.0).
+
+## Distribution
+
+- MCP and CLI package: `WpfLens.Mcp`; command: `wpflens`.
+- C# automation SDK: `WpfLens.Automation`.
+- Codex plugin: `wpflens@WpfLens`, installed from the Git marketplace.
+- MCP Registry identity: `io.github.gaoshang212/wpf-lens`.
+- GitHub Release assets: portable Windows x64 ZIP, both NuGet packages and the
+  standard MCPB bundle. No Codex plugin ZIP or Smithery/Glama-specific packaging.
+
+Package metadata, self-update sources and exported xUnit project references now
+point to WpfLens. Implementation namespaces, assembly names and the original MIT
+attribution remain unchanged to support upstream synchronization.
+
+## Installation
+
+```powershell
+dotnet tool install --global WpfLens.Mcp --version 0.21.0
+dotnet add package WpfLens.Automation --version 0.21.0
+```
+
+Install the Codex plugin separately:
+
+```powershell
+codex plugin marketplace add https://github.com/gaoshang212/WpfLens.git
+codex plugin add wpflens@WpfLens
+```
+
+C# consumers continue to use `WpfVisualTreeMcp.Automation`. Source builds and
+portable packages still run `WpfVisualTreeMcp.Server.exe`.
+
+WPF targets remain .NET Framework 4.7.2/4.8/4.8.1 and .NET 8/9/10 on x86/x64;
+the C# SDK is consumed from .NET 8/9/10 test projects.
 
 The notes below describe historical upstream releases.
 

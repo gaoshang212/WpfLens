@@ -2,8 +2,8 @@
 
 WpfLens is independently maintained in `gaoshang212/WpfLens` and retains
 its Git history and MIT attribution from `faze79/WPFVisualTreeMcp`.
-WpfLens packages and catalog entries have not been published yet. Historical
-upstream releases do not establish publication or ownership for WpfLens.
+Publish WpfLens packages and catalog entries under the identities below.
+Historical upstream releases do not establish publication or ownership for WpfLens.
 
 ## Distribution identities
 

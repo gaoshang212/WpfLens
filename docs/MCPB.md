@@ -56,6 +56,6 @@ not a code-signing verification.
 
 ## Distribution status
 
-WpfLens bundles are being prepared. Upstream releases and catalog listings do not
-publish or update WpfLens. After publishing, distribute the bundle
-through WpfLens GitHub Releases. See [release setup](PROMOTION.md).
+Distribute the standard WpfLens MCPB bundle through WpfLens GitHub Releases.
+Upstream releases and catalog listings do not publish or update WpfLens.
+See [release setup](PROMOTION.md).
