@@ -16,9 +16,6 @@ Package metadata, self-update sources and exported xUnit project references now
 point to WpfLens. Implementation namespaces, assembly names and the original MIT
 attribution remain unchanged to support upstream synchronization.
 
-Window-close requests now send their acknowledgement before scheduling shutdown,
-fixing intermittent empty Inspector responses during graceful application close.
-
 ## Installation
 
 ```powershell

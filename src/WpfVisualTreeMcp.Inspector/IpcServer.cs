@@ -157,15 +157,13 @@ public partial class IpcServer : IDisposable
                             // Process the request
                             DebugLog("HandleClientAsync: Processing request...");
                             var response = await ProcessRequestAsync(line);
-                            var responseJson = IpcSerializer.SerializeResponse(response);
-                            DebugLog($"HandleClientAsync: Response ready (length={responseJson.Length})");
+                            DebugLog($"HandleClientAsync: Response ready (length={response.Length})");
 
                             // Send response
-                            var responseBytes = Encoding.UTF8.GetBytes(responseJson + "\n");
+                            var responseBytes = Encoding.UTF8.GetBytes(response + "\n");
                             DebugLog($"HandleClientAsync: Writing {responseBytes.Length} bytes...");
                             await pipeServer.WriteAsync(responseBytes, 0, responseBytes.Length, cancellationToken);
                             await pipeServer.FlushAsync(cancellationToken);
-                            response.OnSent?.Invoke();
                             DebugLog("HandleClientAsync: Response sent");
 
                             // Keep any remaining data for next line
@@ -231,21 +229,21 @@ public partial class IpcServer : IDisposable
         }
     }
 
-    private async Task<IpcResponse> ProcessRequestAsync(string requestJson)
+    private async Task<string> ProcessRequestAsync(string requestJson)
     {
         var parsed = IpcSerializer.DeserializeRequest(requestJson);
         if (parsed == null)
         {
-            return new GetVisualTreeResponse
+            return IpcSerializer.SerializeResponse(new GetVisualTreeResponse
             {
                 Success = false,
                 Error = "Invalid request format"
-            };
+            });
         }
 
         var (type, data) = parsed.Value;
         var response = await _requestHandler(type, data);
-        return response;
+        return IpcSerializer.SerializeResponse(response);
     }
 
     public void SendNotification(string notificationJson)

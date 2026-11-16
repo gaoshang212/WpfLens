@@ -30,7 +30,6 @@ public partial class InspectorService
     {
         var request = IpcSerializer.DeserializeRequestData<WindowRequest>(data)!;
         var windows = Application.Current.Windows.Cast<Window>().ToArray();
-        Action? onSent = null;
         if (request.Action != "list")
         {
             var window = _treeWalker.ResolveHandle(request.ElementHandle!) as Window;
@@ -43,15 +42,14 @@ public partial class InspectorService
                 case "minimize": window.WindowState = WindowState.Minimized; break;
                 case "maximize": window.WindowState = WindowState.Maximized; break;
                 case "restore": window.WindowState = WindowState.Normal; break;
-                // Closing may terminate the process or open a modal dialog. Send acceptance first.
-                case "close": onSent = () => window.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(window.Close)); break;
+                // Closing handlers may open a modal dialog. Return acceptance before invoking them.
+                case "close": window.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(window.Close)); break;
                 default: throw new ArgumentException("Unknown window action: " + request.Action);
             }
         }
         return new WindowResponse
         {
             RequestId = request.RequestId,
-            OnSent = onSent,
             Windows = windows.Select(w => new WpfWindowInfo
             {
                 Handle = _treeWalker.GetOrCreateHandle(w), AutomationId = AutomationProperties.GetAutomationId(w),

@@ -22,11 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Distribute the Codex plugin through the Git marketplace; remove its release ZIP
   and validate source installation and skill upgrades in isolation.
 
-### Fixed
-
-- Send the window-close acknowledgement before scheduling shutdown, preventing
-  intermittent empty Inspector responses during graceful application close.
-
 ## [0.20.0] - 2026-10-25
 
 ### Added

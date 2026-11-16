@@ -17,10 +17,6 @@ public abstract class IpcResponse
     public string RequestId { get; set; } = string.Empty;
     public bool Success { get; set; } = true;
     public string? Error { get; set; }
-
-    /// <summary>Local work to schedule only after the response has been sent successfully.</summary>
-    [System.Text.Json.Serialization.JsonIgnore]
-    public Action? OnSent { get; set; }
 }
 
 public class GetCapabilitiesRequest : IpcRequest
