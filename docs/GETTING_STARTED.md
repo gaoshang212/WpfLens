@@ -40,14 +40,12 @@ dotnet tool install -g WpfLens.Mcp
 ### Option 3: Codex plugin
 
 Install the MCP configuration and companion skill together using the
-[Codex plugin instructions](../README.md#codex-plugin). This method requires
+[Codex plugin instructions](../README.md#codex). This method requires
 the .NET 10 SDK in addition to the .NET 8 runtime and resolves the latest stable
 server from NuGet. Install from the Git marketplace. Plugin and skill updates
 use the marketplace, separately from CLI updates.
 
 ### Updating an installation
-
-Starting with v0.14.0:
 
 ```powershell
 wpflens update --check
@@ -55,20 +53,34 @@ wpflens update
 wpflens update --status
 ```
 
-For a portable copy, use `WpfVisualTreeMcp.Server.exe update` from its published
-folder. The command updates that copy only; an older executable configured in your
-MCP client does not change when you update a different installation.
+For a portable copy, invoke `WpfVisualTreeMcp.Server.exe update` from that
+installation's `server` folder. A global tool can also be updated with
+`dotnet tool update -g WpfLens.Mcp`; a portable copy can be replaced by extracting
+the latest release.
 
-Installation completes in a separate worker after the command exits. Confirm
-`updated` with `--status`, then restart your MCP client and previously inspected
-applications. `failed` includes a diagnostic log path and returns exit code 1.
-Close processes using the same installation before retrying.
+The command updates **only the installation it was launched from**. Global and
+custom `--tool-path` tools download the exact official NuGet package, then use
+`dotnet tool update` from that staged package (a .NET SDK is required). Temporary
+NuGet download failures and publication delays receive up to four attempts, with
+10, 20 and 30 seconds between attempts. If preparation fails, installed files are
+unchanged; retry later. Portable folders receive the latest stable GitHub release's complete
+server payload, verified against its SHA-256 digest. A source build under `bin`
+is left to the source/build workflow; local manifest tools and `dnx` caches are
+left to their package manager. `--check` explains which installation was detected.
 
-To get the command on an older global installation, run
-`dotnet tool update -g WpfLens.Mcp` once. For an older portable installation,
-download the latest release. Source builds use the normal Git/build workflow;
-local manifest tools use `dotnet tool update WpfLens.Mcp` in their manifest
-directory. See [update behavior and recovery](../README.md#updating).
+On Windows, installation starts in a hidden worker **after the CLI exits** so its
+executable is unlocked. A `scheduled` result means the worker was launched, not
+that installation finished. Run `update --status` until it reports `updated` or
+`failed`; a failed status returns exit code 1. JSON output includes the log path.
+Status, logs and portable backups are stored under
+`%LOCALAPPDATA%\WpfLens\updates`, separately for each installation.
+
+Close other MCP instances using the same files before updating. The updater does
+not stop applications: occupied files cause an error, and portable replacement
+failures trigger restoration from backup. Unrelated files and MCP configuration
+are preserved. After success, restart the MCP client and previously inspected WPF
+apps so both server and injected Inspector use the new version. Other installed
+copies and any separately copied self-hosted Inspector require their own update.
 
 ## Configuration
 
@@ -117,7 +129,7 @@ Create or edit `.mcp.json` in your project root:
 }
 ```
 
-For global configuration, add to `~/.claude/settings.json`.
+For user-wide configuration, merge the MCP entry into `~/.claude.json`, preserving other settings, or use the `--scope user` command above.
 
 Restart Claude Code or reload the window after making changes.
 
@@ -155,7 +167,7 @@ Restart Claude Code or reload the window after making changes.
 
 ## Setting Up Your WPF Application (Self-Hosted Mode)
 
-For the MCP server to inspect your WPF application, you need to add the Inspector DLL to your project. This is called "self-hosted mode" and is the recommended approach.
+Self-hosting is an alternative to automatic injection when you can modify the target application. Reference the Inspector in your project and initialize it at startup as shown below.
 
 ### Step 1: Add Project Reference
 

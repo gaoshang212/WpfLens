@@ -1,88 +1,119 @@
 # WpfLens
 
-Inspect, diagnose, and automate running WPF applications.
-
-WpfLens is independently maintained by gaoshang212, based on
-[faze79/WPFVisualTreeMcp](https://github.com/faze79/WPFVisualTreeMcp).
-WpfLens 0.21.0 is the first independent release. Install the `WpfLens.Mcp`
-tool or use the `WpfLens.Automation` SDK; the public CLI command is `wpflens`.
-
-Implementation namespaces, assembly names and the solution file retain their
-upstream names to simplify synchronization. The C# SDK package is
-`WpfLens.Automation`; its namespace remains `WpfVisualTreeMcp.Automation`.
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 <!-- mcp-name: io.github.gaoshang212/wpf-lens -->
 
 [![Build](https://github.com/gaoshang212/WpfLens/actions/workflows/build.yml/badge.svg)](https://github.com/gaoshang212/WpfLens/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/gaoshang212/WpfLens)](https://github.com/gaoshang212/WpfLens/releases)
-[![.NET: 8, 9, 10](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-512BD4)](#c-test-sdk)
-[![WPF on .NET Framework: 4.7.2, 4.8, 4.8.1](https://img.shields.io/badge/.NET_Framework-4.7.2%20%7C%204.8%20%7C%204.8.1-512BD4)](#c-test-sdk)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io/)
 
-> **Let AI agents see, debug and drive running WPF apps.** Snoop + Playwright for AI, exposed over the Model Context Protocol — visual tree, bindings, screenshots, mouse dragging, touch gestures, text input and keyboard. Inspect running apps without source changes; touch behavior depends on the application's input support.
+**Inspect, diagnose, and automate running WPF applications.**
 
-![Demo: native WPF drag-and-drop, touch gestures, form automation and binding diagnostics](docs/assets/demo-drag-touch.gif)
+WpfLens gives AI agents access to the visual tree, bindings, properties, screenshots and input actions through MCP. It also provides a CLI (`wpflens`) and a C# SDK (`WpfLens.Automation`). Automatic injection lets you inspect applications without changing their source.
 
-*Drag-and-drop, move a canvas item, tap, hold, pan, pinch to zoom and rotate — then query controls, fill a form, select an item and diagnose a binding error. The gesture sequence records real WPF input through MCP, targets controls by AutomationId and checks the application's response, just like the automated tests.*
+Based on [faze79/WPFVisualTreeMcp](https://github.com/faze79/WPFVisualTreeMcp), with upstream baseline [v0.20.0](https://github.com/faze79/WPFVisualTreeMcp/releases/tag/v0.20.0). The first WpfLens release is 0.21.0.
 
-[Watch the animated demo directly](docs/assets/demo-drag-touch.gif?raw=true).
+![Demo: WPF drag-and-drop, touch gestures, form automation and binding diagnostics](docs/assets/demo-drag-touch.gif)
 
-**Upstream baseline: [v0.20.0](https://github.com/faze79/WPFVisualTreeMcp/releases/tag/v0.20.0).**
-Verified support for **WPF on .NET 9, .NET 10 and .NET Framework 4.8.1**, on both
-x86 and x64. CI exercises automatic injection and self-hosting across all six
-supported target frameworks, plus the installed C# SDK from .NET 8, 9 and 10 test
-projects. The x86 injection helper can also use .NET 9 or 10 when .NET 8 is absent.
+*Real WPF input through MCP: drag, tap, pan, pinch and rotate, then fill a form and diagnose binding errors. [Open the demo](docs/assets/demo-drag-touch.gif?raw=true).*
 
-The [`WpfLens.Automation` C# SDK](https://www.nuget.org/packages/WpfLens.Automation)
-drives virtualized DataGrids/TreeViews, waits for controls, manages WPF windows and
-streams property changes. The 38-tool MCP server and CLI share the inspection and
-input engine, including direct AutomationId targeting.
+## Quickstart
 
-Workflow recording/replay/xUnit export, aggregate diagnostics, full-content screenshots
-and .NET Framework 4.7.2 support remain available from v0.16.0. Thanks to @miloszkukla
-for the compatibility and screenshot work in [PR #22](https://github.com/faze79/WPFVisualTreeMcp/pull/22).
+On Windows 10/11, choose one setup method below, then start the WPF app you want to inspect.
 
-## Quickstart (60 seconds)
+### Claude Code
 
-1. Download and extract `WpfLens-vX.Y.Z-win-x64.zip` from the [latest release](https://github.com/gaoshang212/WpfLens/releases/latest) (requires a [.NET 8, 9 or 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet)).
-2. Register it in your MCP client — for Claude Code, add to `.mcp.json`:
+Install the [.NET 8 SDK or later](https://dotnet.microsoft.com/download/dotnet), then run:
+
+```powershell
+dotnet tool install -g WpfLens.Mcp
+claude mcp add --scope user wpflens -- wpflens
+```
+
+The first command installs WpfLens; the second registers a user-wide MCP server.
+
+Claude Code must be able to find `wpflens` on PATH. Use `/mcp` to check the connection.
+
+### Codex
+
+Requirements:
+
+- A plugin-capable Codex client.
+- [.NET 10 SDK 10.0.300 or a newer stable .NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+- The [.NET 8 runtime](https://dotnet.microsoft.com/download/dotnet/8.0). For x86 injection, also install the x86 .NET 8 runtime.
+
+```powershell
+codex plugin marketplace add https://github.com/gaoshang212/WpfLens.git
+codex plugin add wpflens@WpfLens
+```
+
+Restart Codex or open a new session. The plugin includes the MCP configuration and `$wpflens` skill. Check installation with `codex plugin list --marketplace WpfLens`.
+
+Each MCP launch needs access to nuget.org to resolve the latest stable server; downloaded packages are cached.
+
+### Manual configuration
+
+1. Download and extract `WpfLens-vX.Y.Z-win-x64.zip` from the [latest release](https://github.com/gaoshang212/WpfLens/releases/latest). Install a [.NET 8, 9 or 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet).
+2. Add the following to your Claude Code project's `.mcp.json`, or Cursor's `.cursor/mcp.json`, replacing the path with the actual executable location:
+
    ```json
    {
      "mcpServers": {
        "wpflens": {
-         "command": "C:/path/to/WpfVisualTreeMcp.Server.exe",
+         "command": "C:/Tools/WpfLens/server/WpfVisualTreeMcp.Server.exe",
          "args": []
        }
      }
    }
    ```
-3. Ask your agent: *"Look at my running WPF app and tell me why the Save button is disabled."*
 
-Prefer the terminal? The same exe is a full CLI: `WpfVisualTreeMcp.Server.exe help`.
-From v0.14.0, run `wpflens update` (or `WpfVisualTreeMcp.Server.exe update`)
-to update the installation you launched. See [updating](#updating).
-Using Codex? Follow the [plugin installation](#codex-plugin) to install the MCP
-configuration and skill together.
+Clients supporting MCP bundles can instead import the release's `.mcpb` file; see the [MCPB guide](docs/MCPB.md).
+
+After setup, restart the client and ask:
+
+- “List my running WPF applications and inspect the main window.”
+- “Why is the Save button disabled?”
+- “Find binding errors and explain their causes.”
+
+### Compatibility
+
+| Component | Supported environments |
+| --- | --- |
+| Target WPF application | .NET Framework 4.7.2, 4.8, 4.8.1; .NET 8, 9, 10 |
+| C# SDK consumer | .NET 8, 9, 10; not .NET Framework |
+| Target architecture | Windows x86 and x64; an x64 server/test process can control either |
+
+The app and SDK test project may use different frameworks. See the tested [compatibility matrix](tests/compatibility-matrix.json) and [injection requirements](src/WpfVisualTreeMcp.Injector/README.md).
+
+## Core features
+
+| Area | Capabilities |
+| --- | --- |
+| Inspection | Process discovery, visual/logical trees, dependency properties, layout, resources and styles; includes adorners and popups |
+| Diagnostics | Binding errors, DataContext, binding-path resolution, trigger explanations and aggregate reports |
+| Search and verification | Exact AutomationId targeting, text/property filters, condition waits, assertions, property watches and snapshot diffs |
+| Interaction | Click, hover, wheel, drag, touch, text, shortcuts and virtualized item selection; reversible property edits |
+| Capture and export | Element/window screenshots, full scrollable-content capture, XAML/JSON tree export |
+| Test workflows | Record and replay with stable selectors; export runnable xUnit tests |
+
+The MCP server and CLI expose 38 tools through a shared engine. Browse the [MCP tool index](docs/MCP_TOOLS.md), or see the [tool reference](docs/TOOLS_REFERENCE.md) for parameters and examples.
+
+- Touch requires application support; physical input needs an interactive desktop.
+- Actions and replay change application state, and full-content screenshots may temporarily scroll controls.
+- Verify results with waits and assertions; see the [verification workflow](docs/TOOLS_REFERENCE.md#verification).
+
+## How it compares
+
+| | WpfLens | [Snoop](https://github.com/snoopwpf/snoopwpf) | [FlaUI](https://github.com/FlaUI/FlaUI) / WinAppDriver | Screenshot-based computer use |
+| --- | --- | --- | --- | --- |
+| Main interface | MCP, CLI, C# SDK | GUI | Test code | Images and input |
+| Inspection view | WPF visual tree and internals | WPF visual tree and internals | UI Automation accessibility tree | Screen pixels |
+| Bindings / DataContext | Yes | Yes | Requires an additional in-process probe | Not directly available |
+| Automation focus | Inspection, diagnostics and input workflows | Manual inspection | UI testing | Visual interaction |
 
 ## C# test SDK
-
-`WpfVisualTreeMcp.Automation` exposes the inspection and input engine as C# objects,
-with direct process attachment and AutomationId locators. The package includes the
-injection payload and works without starting an MCP server or CLI.
-
-| Component | Supported frameworks |
-| --- | --- |
-| WPF application being automated | .NET Framework 4.7.2, 4.8, 4.8.1; .NET 8, 9, 10 |
-| C# project consuming the Automation NuGet | .NET 8, 9, 10 |
-| Architectures | Windows x86 and x64; use an x64 test process to control either |
-
-The application and test project can use different frameworks: for example, a
-.NET 10 test can automate a .NET Framework 4.8.1 application. The SDK's `net8.0`
-library works in .NET 9/10 test projects; it is not a .NET Framework test library.
-The [compatibility matrix](tests/compatibility-matrix.json) is exercised before
-release, including actual runtime-version checks. Framework 4.x target builds run
-on the installed 4.8.1 runtime, since those runtimes update in place.
 
 ```powershell
 dotnet add package WpfLens.Automation --version 0.22.0
@@ -95,685 +126,122 @@ await using var app = await WpfApplication.AttachAsync(processId);
 await app.ByAutomationId("LoadButton").ClickAsync();
 await app.ByAutomationId("StatusTextBox").WaitForTextAsync(
     "loaded", timeout: TimeSpan.FromSeconds(30));
-await app.ByAutomationId("Canvas").PanAsync(100, 0);
-await app.ByAutomationId("Canvas").ZoomAsync(1.5);
 ```
 
-Text waits compare the exact property value: `not loaded` does not match `loaded`.
-Timeouts throw with the expected and last observed values. Property predicates,
-cancellation, drag, touch, assertions, inspection and recording/replay are also
-available. Attached sessions leave the app running on disposal; launched sessions
-own and clean up their process by default.
+The SDK attaches directly and includes the injection payload; no MCP server or CLI process is needed. Text waits match the exact value.
 
-```csharp
-await app.ByAutomationId("Orders").AsDataGrid()
-    .RowByKey("Id", "42").Cell("Quantity").SetTextAsync("7");
-await app.ByAutomationId("Folders").AsTreeView().Node("Projects", "WPF").SelectAsync();
-await app.ByAutomationId("Enabled").CheckAsync();
-await using var changes = await app.ByAutomationId("StatusTextBox").ObservePropertyAsync("Text");
-```
+Package names use `WpfLens`, while implementation namespaces and assembly names retain `WpfVisualTreeMcp` for upstream compatibility.
 
-The SDK is a separate package from the MCP tool `WpfVisualTreeMcp`.
-See [installation, API examples and requirements](src/WpfVisualTreeMcp.Automation/README.md).
+See the [SDK guide](src/WpfVisualTreeMcp.Automation/README.md) for DataGrid/TreeView APIs, gestures, cancellation, session lifetime and property subscriptions.
 
-## Overview
+## CLI examples
 
-**WpfLens** is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows AI coding agents (Codex, Claude Code, Cursor, GitHub Copilot) to inspect and interact with running WPF applications. Think of it as giving your AI assistant the same capabilities as tools like [Snoop WPF](https://github.com/snoopwpf/snoopwpf) or Visual Studio's Live Visual Tree.
-
-### Why This Matters
-
-Debugging WPF UI issues traditionally requires manual inspection with specialized tools. This project bridges that gap by exposing WPF inspection capabilities through MCP, enabling AI agents to:
-
-- **Understand UI structure** during code reviews
-- **Diagnose binding errors** automatically
-- **Suggest fixes** for layout issues
-- **Assist with UI refactoring** tasks
-- **Analyze visual tree hierarchies** in real-time
-
-## Features
-
-### Core Inspection
-- **Process Discovery** - List all running WPF applications available for inspection
-- **Visual Tree Navigation** - Traverse the complete visual tree hierarchy
-- **Logical Tree Access** - Navigate the logical tree structure
-- **Property Inspection** - Read all dependency properties of any UI element
-
-### Binding & Resources
-- **Binding Analysis** - Inspect bindings with converter, StringFormat, FallbackValue, MultiBinding support
-- **DataContext Inspection** - View DataContext type, properties, INPC status, and inheritance chain
-- **Binding Error Detection** - Automatically capture and report binding errors with classification
-- **Resource Enumeration** - Browse resource dictionaries at any scope
-- **Style Inspection** - View applied styles and templates
-
-### Search & Monitoring
-- **Element Search** - Find elements by type, name, or property values
-- **Deep Search** - Search entire tree including AdornerLayer and Popup elements
-- **Property Watching** - Monitor property changes in real-time
-
-### Interaction & Export
-- **Touch Gestures** *(v0.13.0)* - `wpf_touch_gesture` / CLI `touch`: native tap, long press, swipe, pinch and rotation with one or two contacts. Includes an interactive demo and [WPF compatibility guidance](docs/TOOLS_REFERENCE.md#touch-compatibility-and-verification).
-- **Mouse Drag** - `wpf_drag` / CLI `drag`: drag between visual-tree elements or by a local displacement, with left/right/middle buttons, configurable duration and local start/end points. Supports slider thumbs, splitters and drag-and-drop. See the [parameters and examples](docs/TOOLS_REFERENCE.md#wpf_drag).
-- **Screenshot Capture** - Current source uses `auto` capture for native hosted content and reports the selected mode; explicit render rejects unsupported native areas. Capture window/element screenshots visible to AI agents; `full_content=true` / CLI `--full-content` captures scrollable content, including virtualized lists, and restores the original scroll position
-- **Element Highlighting** - Visually highlight elements in the running app
-- **Control Click** *(v0.4.0)* - Click elements via UI Automation (`Invoke`/`Toggle`/`Select`/`ExpandCollapse`) or a real OS mouse click
-- **Set Text** *(new in v0.5.0)* - Fill a TextBox/ComboBox/PasswordBox via UI Automation `IValueProvider.SetValue`, with a `TextBox.Text` / `PasswordBox.Password` / reflected-`Text` fallback, or `physical=true` to type via OS keyboard input (full Unicode BMP)
-- **Send Keys** *(new in v0.5.0)* - Send keyboard shortcuts (`Ctrl+S`, `Alt+F4`, `F5`, `Enter`, `Ctrl+Shift+F`, ...) to an element or the focused window via OS keyboard input
-- **Layout Information** - Get detailed layout metrics
-- **Tree Export** - Export visual tree to XAML or JSON format
-- **Auto-Injection** - Inject Inspector into running WPF processes (no source changes needed); **multi-architecture** since v0.6.0 — a 64-bit server can inject into 32-bit WPF apps via a bundled `WpfInjectorHelper.exe`
-
-### Dual-Mode CLI *(new in v0.4.0)*
-The same `WpfVisualTreeMcp.Server.exe` runs as either an MCP stdio server
-(no arguments, default) or as a **one-shot CLI** (any recognised subcommand).
-Useful when the MCP server isn't connected, for scripting, and for verifying
-the pipeline manually. Run `WpfVisualTreeMcp.Server.exe help` for the full
-command list. Output is JSON on stdout; diagnostics go to stderr.
-
-## How it compares
-
-**vs. the general tool categories:**
-
-| | **WpfLens** | [Snoop](https://github.com/snoopwpf/snoopwpf) | [FlaUI](https://github.com/FlaUI/FlaUI) / WinAppDriver | Generic computer-use (screenshot + mouse) |
-|---|---|---|---|---|
-| Consumer | **AI agents (MCP) + humans (CLI)** | Humans (GUI) | Test code (C#) | AI agents |
-| Visual tree, dependency properties | ✅ | ✅ | ❌ (UIA view only) | ❌ |
-| Data bindings, binding errors, DataContext | ✅ | ✅ | ❌ | ❌ |
-| Find controls by visible text / properties | ✅ | manual | partial (UIA) | pixel guessing |
-| Click / type / select / shortcuts | ✅ | ❌ | ✅ | ✅ (blind) |
-| Wait for UI conditions (no sleep loops) | ✅ | ❌ | ✅ | ❌ |
-| Element screenshots + popup-aware screen capture | ✅ | ❌ | partial | full screen only |
-| Works without target source changes | ✅ (auto-injection) | ✅ | ✅ | ✅ |
-
-**vs. other WPF MCP servers.** Most WPF MCP servers are built on **UI Automation** (FlaUI): they read the *accessibility* tree, and can only reach WPF internals — bindings, DataContext, ViewModel state — if you **install their in-process probe into the app you want to inspect**. This server takes the Snoop route instead: it **injects at runtime**, so it reads the *real* visual tree and diagnoses binding errors and DataContext **with zero changes to the target app** — nothing to add to your build, nothing to ship into production.
-
-| | **WpfLens** | UIA-based servers (FlaUI) | Other injection-based servers |
-|---|---|---|---|
-| Sees the real visual tree (not just the UIA view) | ✅ injection | ❌ accessibility tree | ✅ |
-| Binding errors + DataContext **without a probe in the target** | ✅ | ❌ (needs in-process probe) | partial |
-| Interaction surface | click (UIA + physical, double/right), drag, touch gestures, set-text w/ read-back, send-keys, **select-item (virtualized)** | click / type / select | usually invoke-only |
-| Wait for element conditions | ✅ `wpf_wait_for` | ✅ | ❌ |
-| Popup / dropdown / context-menu screenshots | ✅ screen mode | partial | screenshot only |
-| Cross-architecture injection (x64 ⇄ x86) | ✅ | n/a | ❌ |
-| Dual-mode: MCP server **and** one-shot CLI | ✅ | ❌ | ❌ |
-| Distribution | NuGet (`dnx`/tool), official MCP registry, Codex plugin + skill | varies | varies |
-
-In short: UIA-based tools see what accessibility exposes, and computer-use agents see pixels. This project gives the agent **the same insider view a WPF developer has in Snoop — with no probe to install in the target app** — plus the widest set of hands to act on it, over a protocol every AI coding tool speaks.
-
-## Installation
-
-### Prerequisites
-
-- Windows 10/11
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
-- A WPF application to inspect
-
-Building and running the complete compatibility suite requires the .NET 10 SDK,
-.NET 8/9/10 Desktop runtimes for x64 and x86, and .NET Framework 4.8.1.
-
-### Installation
-
-#### Option 1: .NET tool / NuGet (Recommended)
-
-```bash
-dotnet tool install -g WpfLens.Mcp     # installs the `wpflens` command
-```
-
-The package is also published as an **MCP server package** (`PackageType: McpServer`),
-so MCP clients that support NuGet-hosted servers can launch it directly:
-
-```bash
-dnx WpfLens.Mcp                        # runs the MCP stdio server
-```
-
-#### Option 2: Download Release
-
-Download the latest release from [GitHub Releases](https://github.com/gaoshang212/WpfLens/releases):
-
-1. Download `WpfLens-vX.X.X-win-x64.zip`
-2. Extract to a folder (e.g., `C:\Tools\WpfVisualTreeMcp`)
-3. The MCP server executable is `server/WpfVisualTreeMcp.Server.exe`
-
-#### Desktop extension (MCPB)
-
-Clients that support MCP bundles can import
-[`WpfLens-vX.Y.Z-win-x64.mcpb`](https://github.com/gaoshang212/WpfLens/releases).
-This Windows x64 bundle includes the server runtime and a self-contained x86
-injection helper. Update the bundle through the client's extension UI. See the
-[MCPB guide](docs/MCPB.md) for requirements, packaging and verification.
-
-#### Option 3: Build from Source
-
-```bash
-git clone https://github.com/gaoshang212/WpfLens.git
-cd WpfLens
-# Visual Studio Developer PowerShell (C++ v143 toolset + Windows SDK)
-./scripts/Build-NativeBootstrapper.ps1
-dotnet build -c Release
-```
-
-For injection build requirements, package layout, and troubleshooting, see the
-[Injector README](src/WpfVisualTreeMcp.Injector/README.md). Injecting into x86 apps
-requires the x86 .NET 8 runtime for the helper.
-
-### Updating
+With no subcommand, `wpflens` starts the MCP stdio server. A recognized subcommand runs a single CLI operation. Results go to stdout as JSON; diagnostics go to stderr.
 
 ```powershell
-wpflens update --check   # current/latest stable version; no installation changes
-wpflens update           # download and schedule installation automatically
-wpflens update --status  # confirm completion or inspect a failure
-
-# For an extracted release or a published folder, invoke that exact executable:
-C:\Tools\WpfVisualTreeMcp\server\WpfVisualTreeMcp.Server.exe update
+wpflens list
+wpflens attach --pid 1234 --auto-inject
+wpflens find --pid 1234 --type Button
+wpflens props --pid 1234 --handle elem_00000052
+wpflens screenshot --pid 1234 --out app.png
 ```
 
-`update` is available from **v0.14.0**. For an older global tool, bootstrap it once:
+- Replace the PID and handle with values returned by your queries. Handles expire when the target restarts or the element is collected.
+- Input commands also accept `--automation-id` for exact, case-sensitive targeting.
+- Use `wpflens help` or `wpflens <command> --help` for details.
+
+## Updating
 
 ```powershell
-dotnet tool update -g WpfLens.Mcp
+wpflens update --check
+wpflens update
+wpflens update --status
 ```
 
-For an older portable copy, extract the latest release and use its `server` folder.
+- For a portable installation, invoke that copy's `server/WpfVisualTreeMcp.Server.exe update`. Only the invoked installation is updated.
+- Global tools can also use `dotnet tool update -g WpfLens.Mcp`.
 
-The command updates **only the installation it was launched from**. Global and
-custom `--tool-path` tools download the exact official NuGet package, then use
-`dotnet tool update` from that staged package (a .NET SDK is required). Temporary
-NuGet download failures and publication delays receive up to four attempts, with
-10, 20 and 30 seconds between attempts. If preparation fails, installed files are
-unchanged; retry later. Portable folders receive the latest stable GitHub release's complete
-server payload, verified against its SHA-256 digest. A source build under `bin`
-is left to the source/build workflow; local manifest tools and `dnx` caches are
-left to their package manager. `--check` explains which installation was detected.
+A `scheduled` result is not completion: check `--status` for `updated` or `failed`.
 
-On Windows, installation starts in a hidden worker **after the CLI exits** so its
-executable is unlocked. A `scheduled` result means the worker was launched, not
-that installation finished. Run `update --status` until it reports `updated` or
-`failed`; a failed status returns exit code 1. JSON output includes the log path.
-Status, logs and portable backups are stored under
-`%LOCALAPPDATA%\WpfLens\updates`, separately for each installation.
+Close other MCP instances using the same files before updating; after success, restart the MCP client and previously inspected WPF apps.
 
-Close other MCP instances using the same files before updating. The updater does
-not stop applications: occupied files cause an error, and portable replacement
-failures trigger restoration from backup. Unrelated files and MCP configuration
-are preserved. After success, restart the MCP client and previously inspected WPF
-apps so both server and injected Inspector use the new version. Other installed
-copies and any separately copied self-hosted Inspector require their own update.
+The Codex plugin resolves server updates on restart. Plugin configuration and skill updates are separate; `wpflens update` does not update them.
 
-### Configuration
-
-The server uses the **official Microsoft/Anthropic MCP SDK for .NET**, providing guaranteed compatibility with Claude Code and other MCP clients.
-
-#### Claude Code
-
-**Option 1: Command Line (Recommended)**
-
-Use the `claude mcp add` command to add the server directly:
-
-```bash
-# Add to current project only
-claude mcp add wpflens -- C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe
-
-# Add globally (available in all projects)
-claude mcp add --scope user wpflens -- C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe
-```
-
-You can verify the server was added:
-```bash
-claude mcp list
-```
-
-**Option 2: Project-level JSON Configuration**
-
-Create or edit `.mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "wpflens": {
-      "command": "C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe",
-      "args": []
-    }
-  }
-}
-```
-
-**Option 3: Global JSON Configuration**
-
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "wpflens": {
-      "command": "C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe",
-      "args": []
-    }
-  }
-}
-```
-
-**Important Notes:**
-- Use absolute paths to the built `.exe` file
-- Use forward slashes (`/`) in paths on Windows
-- Build in Release mode for production: `dotnet build -c Release`
-- Restart Claude Code after configuration changes
-
-#### Cursor
-
-Add to your Cursor settings (`.cursor/mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "wpflens": {
-      "command": "C:/path/to/WpfVisualTreeMcp/publish/WpfVisualTreeMcp.Server.exe",
-      "args": []
-    }
-  }
-}
-```
-
-#### Codex plugin
-
-The repository includes a **WpfLens** Codex plugin that installs the MCP
-configuration and a `wpflens` skill together. It runs the **latest stable NuGet package**,
-not a build of the checked-out source. No machine-specific executable path is
-required.
-
-Prerequisites for this installation method:
-
-- Windows 10/11 and a local Codex client with plugin support.
-- [.NET 10 SDK, version 10.0.300 or newer within .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) for `dotnet dnx`,
-  plus the [.NET 8 runtime](https://dotnet.microsoft.com/download/dotnet/8.0).
-- Internet access to nuget.org on each MCP launch to resolve the latest stable
-  version. Downloaded packages are cached by .NET. For x86 injection, install
-  the x86 .NET 8 runtime as well.
-
-From the repository root, register the local marketplace and install the plugin.
-
-```powershell
-codex plugin marketplace add .
-codex plugin add wpflens@WpfLens
-```
-
-Restart Codex or open a new session, then ask it to inspect your running WPF app.
-The skill can also be invoked explicitly as `$wpflens`.
-
-Alternatively, install directly from the WpfLens Git repository without cloning
-it manually:
-
-```powershell
-codex plugin marketplace add https://github.com/gaoshang212/WpfLens.git
-codex plugin add wpflens@WpfLens
-```
-
-Use `codex plugin list --marketplace WpfLens` to check the installation. This is
-a repository marketplace; it does not imply publication in OpenAI's public
-plugin directory. If your client lacks `codex plugin add`, use a plugin-capable
-client or the direct MCP configuration below.
-
-To use your own build, or to avoid the .NET 10 SDK requirement, register the
-published executable directly instead of installing the plugin:
-
-```powershell
-codex mcp add wpflens -- "C:/Tools/WpfVisualTreeMcp/server/WpfVisualTreeMcp.Server.exe"
-```
-
-Replace the example with the actual executable path. Avoid enabling both this
-manual entry and the plugin at the same time, which would start two servers.
-
-Plugin files are under `plugins/wpflens/`; the marketplace entry is
-`.agents/plugins/marketplace.json`. The plugin uses Codex's supported
-`.codex-plugin/plugin.json` compatibility format. Its manifest version identifies
-the plugin configuration and skill, independently of the NuGet server version.
-The MCP launch omits a package version and uses `--no-http-cache` to resolve the
-latest stable release from nuget.org on each start. Prereleases are excluded.
-Restart the MCP server or Codex to pick up a new server release; a running server
-does not update in place. Never add CLI subcommands
-such as `list` to the MCP launch arguments: no subcommand selects stdio mode.
-
-The plugin starts in its own directory and includes a `global.json` selecting
-SDK 10.0.300 or a newer stable .NET 10 SDK. This keeps a target project's older SDK pin
-from disabling `dotnet dnx`. The noninteractive launch and x64/x86 Inspector
-injection were verified with SDK 10.0.402 and Codex CLI 0.162.1. The SDK pin keeps
-the launch on the tested .NET 10 command-line behavior.
-
-The compatibility MCP configuration uses `"cwd": "."`, which Codex resolves
-relative to the installed plugin root. This resolution was verified through
-`codex mcp list --json` after installation in an isolated profile.
-After editing local plugin files, rerun `codex plugin add wpflens@WpfLens`
-to refresh the installed copy, then open a new Codex session.
-
-For a Git-backed marketplace, update the plugin configuration and companion skill with:
-
-```powershell
-codex plugin marketplace upgrade WPFVisualTreeMcp
-codex plugin add wpflens@WpfLens
-```
-
-For a local marketplace, update its source checkout before reinstalling the plugin.
-The companion skill covers mouse dragging, touch gestures and update behavior.
-`wpflens update` updates a separately installed CLI or portable copy; it does
-not refresh a plugin or its skill, and should not be used to modify the plugin's
-shared `dnx` package cache. See [Updating](#updating) for standalone installations.
-
-### Self-Hosted Mode (Recommended)
-
-For your WPF application to be inspectable, add a reference to the Inspector DLL and initialize it on startup:
-
-1. Add a project reference to `WpfVisualTreeMcp.Inspector`
-
-2. In your `App.xaml.cs`:
-
-```csharp
-using System.Diagnostics;
-using System.Windows;
-using WpfVisualTreeMcp.Inspector;
-
-public partial class App : Application
-{
-    protected override void OnStartup(StartupEventArgs e)
-    {
-        base.OnStartup(e);
-
-        // Initialize the WPF Visual Tree Inspector
-        InspectorService.Initialize(Process.GetCurrentProcess().Id);
-    }
-
-    protected override void OnExit(ExitEventArgs e)
-    {
-        InspectorService.Instance?.Dispose();
-        base.OnExit(e);
-    }
-}
-```
-
-This enables the MCP server to connect to your application via named pipes for real-time inspection.
-
-## Usage Examples
-
-### List Running WPF Applications
-
-```
-Use the wpf_list_processes tool to show all running WPF applications.
-```
-
-### Attach and Inspect Visual Tree
-
-```
-Attach to the MyApp.exe WPF application and show me the visual tree of the main window.
-```
-
-### Find Binding Errors
-
-```
-Check the attached WPF application for any binding errors and explain what's causing them.
-```
-
-### Search for Elements
-
-```
-Find all Button elements in the visual tree that have IsEnabled set to false.
-```
-
-### Export Visual Tree
-
-```
-Export the visual tree of the current window to JSON format so I can analyze the structure.
-```
+Source builds and package-manager caches use their own update workflows. See [update behavior and recovery](docs/GETTING_STARTED.md#updating-an-installation) for details.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    AI Agent (Claude Code)                    │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ MCP Protocol (stdio)
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 WpfVisualTreeMcp Server                      │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐  │
-│  │   MCP Handler   │  │  Tree Navigator │  │   Injector  │  │
-│  │  (Tools/Res.)   │  │   & Inspector   │  │   Manager   │  │
-│  └────────┬────────┘  └────────┬────────┘  └──────┬──────┘  │
-└───────────┼────────────────────┼───────────────────┼────────┘
-            │                    │                   │
-            └────────────────────┼───────────────────┘
-                                 │ Named Pipes / IPC
-                                 ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Target WPF Application                     │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │              Injected Inspector DLL                      ││
-│  │  • VisualTreeHelper access                              ││
-│  │  • LogicalTreeHelper access                             ││
-│  │  • Property/Binding inspection                          ││
-│  │  • Resource dictionary enumeration                      ││
-│  └─────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    agent["AI agent"]
+    subgraph server["WpfLens server / CLI"]
+        tools["MCP tools and command routing"]
+        manager["Process discovery and attachment"]
+        bridge["IPC bridge"]
+    end
+    subgraph target["Target WPF application"]
+        inspector["Inspector DLL"]
+        tree["Visual tree, properties and bindings"]
+        actions["Input, screenshots and workflows"]
+        inspector --> tree
+        inspector --> actions
+    end
+    agent -->|"MCP / stdio"| tools
+    tools --> manager
+    tools --> bridge
+    bridge -->|"Named pipes"| inspector
 ```
 
-For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The server runs separately from the target app. Inspector is injected at runtime or initialized by the app in [self-hosted mode](docs/GETTING_STARTED.md#setting-up-your-wpf-application-self-hosted-mode).
 
-## Available Tools
+WPF tree access runs on the target UI Dispatcher. See the [architecture guide](docs/ARCHITECTURE.md) for component and threading details.
 
-| Tool | Description |
-|------|-------------|
-| `wpf_list_processes` | List all running WPF applications |
-| `wpf_attach` | Attach to a WPF application (supports `auto_inject` for DLL injection) |
-| `wpf_get_visual_tree` | Get the visual tree hierarchy (default depth: 25, max: 100) |
-| `wpf_get_element_properties` | Get all dependency properties of an element |
-| `wpf_find_elements` | Query elements by exact **AutomationId**, type, x:Name, **visible text**, property values and visibility; results include text, automation id, enabled/visible state and screen bounds |
-| `wpf_find_elements_deep` | Same query filters without result limit, across all windows including adorners/popups |
-| `wpf_capture_screenshot` | Capture a specific control, Window or rendered Popup content by handle (returns image); `mode='screen'` reads pixels within that target's rectangle; `full_content=true` with render mode captures scrollable content |
-| `wpf_report` | Aggregate current binding/validation errors, UI state counts and recent binding traces, with explicit scan limits and coverage |
-| `wpf_record` / `wpf_get_recording` | Start, stop, inspect or clear a workflow recording with stable selectors |
-| `wpf_assert` | Assert a dependency-property value; successful assertions are included in active recordings |
-| `wpf_replay` | Replay a workflow against a fresh app, stopping at the first failed step |
-| `wpf_export_test` | Export a stopped recording as a runnable xUnit project or workflow JSON |
-| `wpf_get_bindings` | Get data bindings for an element (includes MultiBinding, converter, StringFormat) |
-| `wpf_get_binding_errors` | List all captured binding errors |
-| `wpf_clear_binding_errors` | Clear the captured binding errors list |
-| `wpf_get_data_context` | Get DataContext type, properties, INPC status, and inheritance chain |
-| `wpf_get_resources` | Enumerate resource dictionaries |
-| `wpf_get_styles` | Get applied styles and templates |
-| `wpf_watch_property` | Monitor a property for changes |
-| `wpf_evaluate_binding` | Explain **why** a property has its value — value source, and for bindings a hop-by-hop path resolution pinpointing where a broken binding fails |
-| `wpf_explain_triggers` | Evaluate Style **and ControlTemplate** triggers against the current state (condition, current value, active, setters) — 'why doesn't this trigger fire?'; and attribute a property's value to the style setter / active trigger that set it |
-| `wpf_snapshot` | Capture an element subtree's state (layout, visibility, brushes, text) under a label |
-| `wpf_diff` | Diff two snapshots — measure exactly what a change moved (property from→to, added/removed) |
-| `wpf_set_property` | **Live-edit** a dependency property at runtime (type-converted), to test a change without rebuilding. *State-changing, reversible.* |
-| `wpf_revert_property` | Undo `wpf_set_property` edits (one, filtered, or all) — restores the prior binding/value/default. |
-| `wpf_highlight_element` | Visually highlight an element |
-| `wpf_click_element` | **Click a control by handle or AutomationId** — pass `automation_id="form.clear"` directly; optional `root_handle` scopes lookup and duplicate IDs fail. UI Automation invoke by default, `physical=true` for a real OS mouse click, `click_type='double'/'right'` for double/right clicks. *State-changing.* |
-| `wpf_move_mouse` | **Move/hover** at a local point without clicking. Available from v0.17.0. |
-| `wpf_scroll` | **Wheel input** vertically or horizontally; the app decides whether to scroll or zoom. Available from v0.17.0. |
-| `wpf_drag` | **Drag with the mouse** — source and target elements or relative displacement, local points, left/right/middle button, gradual movement and release cleanup. *State-changing.* |
-| `wpf_touch_gesture` | **Native touch** — tap, long press, swipe, two-finger pinch and rotation inside a visible element. Requires application touch support. *State-changing.* |
-| `wpf_select_item` | **Select an item** in a ComboBox/ListBox/ListView/TabControl by visible text or index — works with virtualized items. *State-changing.* |
-| `wpf_wait_for_element` | **Wait** until an element is visible/exists/enabled/hidden, polling in the target app — no sleep-and-retry loops. |
-| `wpf_set_text` | **Set text/value** of a TextBox/ComboBox/PasswordBox — UI Automation `IValueProvider.SetValue` by default, `physical=true` to type via OS keyboard input. *State-changing.* |
-| `wpf_send_keys` | **Send a keyboard shortcut** (`Ctrl+S`, `Alt+F4`, `F5`, `Enter`, ...) to an element or the focused window. *State-changing.* |
-| `wpf_get_layout_info` | Get layout information |
-| `wpf_export_tree` | Export visual tree to XAML or JSON |
+## Development and building
 
-For complete tool documentation, see [docs/TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md).
+Use Visual Studio Developer PowerShell with the C++ v143 toolset and Windows SDK.
 
-Verify functional results with element searches, waits and exact property
-assertions first. When visual evidence is needed, capture the affected control,
-Window or rendered Popup content individually by handle; `screen` mode stays
-within that target's rectangle. Use wider context for placement or occlusion
-checks. See the [verification workflow](docs/TOOLS_REFERENCE.md#verification).
+The full compatibility suite also requires .NET 10 SDK, x64/x86 .NET 8/9/10 Desktop runtimes, and .NET Framework 4.8.1.
 
-All input actions accept `automation_id` instead of `element_handle`, including
-click, mouse movement, scrolling, drag, every touch gesture, selection, text and
-keyboard input. Assertions and property edits accept it too. IDs match
-`AutomationProperties.AutomationId` exactly and case-sensitively; duplicates fail.
-Use `root_handle` to scope lookup. Drag destinations accept `target_automation_id`
-and an independent `target_root_handle`. The same selectors work in recordings
-and exported tests.
-
-```text
-wpf_touch_gesture(automation_id="Canvas", gesture="tap")
-wpf_touch_gesture(automation_id="Canvas", gesture="swipe", delta_x=80)
-wpf_touch_gesture(automation_id="Canvas", gesture="pinch", scale=1.5)
-wpf_drag(automation_id="Source", target_automation_id="Destination")
-wpf_set_text(automation_id="UserName", text="test")
-wpf_assert(automation_id="UserName", property_name="Text", expected_value="test")
+```powershell
+git clone https://github.com/gaoshang212/WpfLens.git
+cd WpfLens
+./scripts/Build-NativeBootstrapper.ps1
+dotnet build -c Release WpfVisualTreeMcp.sln
+dotnet test WpfVisualTreeMcp.sln
+dotnet run --project samples/SampleWpfApp
 ```
 
-CLI equivalents use `--automation-id`, `--root`, `--target-automation-id` and
-`--target-root`. Touch pan uses `swipe`, zoom uses `pinch`; the app must support
-touch/manipulations to react to those gestures.
+Open `WpfVisualTreeMcp.sln` in Visual Studio 2022, or use VS Code. Contributions are welcome.
 
-## Roadmap
+| Source | Responsibility |
+| --- | --- |
+| `src/WpfVisualTreeMcp.Server/` | MCP server and CLI |
+| `src/WpfVisualTreeMcp.Automation/` | C# SDK and shared process/IPC infrastructure |
+| `src/WpfVisualTreeMcp.Inspector/` | Inspection and interaction inside the target app |
+| `src/WpfVisualTreeMcp.Injector/` | Managed injection |
+| `src/WpfVisualTreeMcp.InjectorHelper/` | x86 injection helper |
+| `src/WpfVisualTreeMcp.Bootstrapper/` | Native CLR bootstrapper |
+| `plugins/wpflens/` | Codex plugin and skill |
+| `samples/`, `tests/`, `scripts/` | Sample apps, tests and build/verification scripts |
 
-### Phase 1: Core Inspection ✅
-- [x] Project structure and architecture
-- [x] Process discovery and enumeration
-- [x] Basic process attachment
-- [x] Visual tree navigation
-- [x] Property inspection
-- [x] Element search
+## Documentation
 
-### Phase 2: Advanced Features ✅
-- [x] IPC communication via named pipes
-- [x] Binding analysis and error detection
-- [x] Resource dictionary enumeration
-- [x] Style and template inspection
-- [x] Property change monitoring (with notifications)
+| Guide | Contents |
+| --- | --- |
+| [Getting started](docs/GETTING_STARTED.md) | Additional configuration, self-hosting, update recovery and troubleshooting |
+| [MCP tool index](docs/MCP_TOOLS.md) | Names and brief descriptions of all 38 tools |
+| [Tool reference](docs/TOOLS_REFERENCE.md) | All MCP tools, selectors, recording/replay and verification |
+| [C# SDK](src/WpfVisualTreeMcp.Automation/README.md) | SDK installation, API examples and requirements |
+| [Architecture](docs/ARCHITECTURE.md) | Components, IPC and threading |
+| [Injection](src/WpfVisualTreeMcp.Injector/README.md) / [MCPB](docs/MCPB.md) | Injection payloads and desktop bundles |
+| [Roadmap](docs/ROADMAP.md) | Planned work and priorities |
+| [Changelog](CHANGELOG.md) / [Release notes](RELEASE_NOTES.md) | Version history |
 
-### Phase 3: Interaction & Diagnostics ✅
-- [x] Element highlighting overlay
-- [x] XAML/JSON export
-- [x] Screenshot capture (returns MCP `ImageContentBlock`)
-- [x] DLL auto-injection into running WPF processes (x64/x86)
-- [x] AdornerLayer and Popup visual tree traversal
+## Acknowledgments and license
 
-### Phase 4: CLI + Driving the App ✅ *(v0.4.0 / v0.5.0)*
-- [x] Dual-mode executable (MCP stdio + one-shot CLI) *(v0.4.0)*
-- [x] Control click via UI Automation patterns *(v0.4.0)*
-- [x] Physical OS mouse click as opt-in fallback *(v0.4.0)*
-- [x] User-level Claude Code skill bundling the CLI *(v0.4.0)*
-- [x] Set text/value via UI Automation `IValueProvider` + fallbacks *(v0.5.0)*
-- [x] Physical keyboard typing with Unicode BMP support *(v0.5.0)*
-- [x] Keyboard shortcuts (`Ctrl+S`, `Alt+F4`, `F5`, ...) via OS input *(v0.5.0)*
+- Based on [faze79/WPFVisualTreeMcp](https://github.com/faze79/WPFVisualTreeMcp).
+- Inspired by [Snoop WPF](https://github.com/snoopwpf/snoopwpf).
+- Built on the [Model Context Protocol](https://modelcontextprotocol.io/).
+- Thanks to the .NET/WPF community and @miloszkukla for the compatibility and screenshot work in [PR #22](https://github.com/faze79/WPFVisualTreeMcp/pull/22).
 
-### Phase 5: Multi-architecture ✅ *(v0.6.0)*
-- [x] Cross-bitness auto-injection (64-bit server → 32-bit target)
-- [x] Architecture-matching `WpfInjectorHelper.exe` (32-bit .NET 8)
-- [x] Removes v0.5.0 known limitation; both x86 and x64 WPF apps drivable
-
-### Phase 6: Query engine & full driving ✅ *(v0.7.0)*
-- [x] Query elements by visible text, property values, visibility
-- [x] Enriched results: text, automation id, enabled/visible state, screen bounds
-- [x] `wpf_select_item` — select in ComboBox/ListBox/TabControl by text or index
-- [x] Double / right click; scroll-into-view before physical input
-- [x] Screen-mode screenshots (popups, dropdowns, context menus visible)
-- [x] Set-text read-back verification; weak element-handle cache
-- [x] Critical IPC serialization fix (request parameters were silently dropped)
-
-### Phase 7: Distribution & agent ergonomics ✅ *(v0.7.1 / v0.8.0)*
-- [x] NuGet package, installable via `dnx` / `dotnet tool install` (MCP server package type)
-- [x] Published to nuget.org (trusted publishing / OIDC) and the official MCP registry
-- [x] Binding-error capture fixed (was never wired up), IPC parameter-drop fix
-- [x] `wpf_wait_for` — wait for an element/condition, no sleep-and-retry loops
-- [x] Concurrent IPC connections (a long wait no longer blocks other commands)
-
-### Next up
-
-Shipped in **v0.13.0**: mouse dragging and native touch gestures, with MCP/CLI parity,
-sample demos, input cleanup, and real desktop validation across net48 x86/x64 and net8 x64.
-Shipped in **v0.14.0**: CLI self-update with version checks and installation status.
-Shipped in **v0.15.0**: Codex plugin marketplace and companion skill.
-Shipped in **v0.16.0**: workflow recording/replay/xUnit export, aggregate diagnostics,
-full-content screenshots and .NET Framework 4.7.2 compatibility.
-
-The "change → measure → is it effective?" loop is complete: live-edit a property, then
-diff a before/after snapshot to see exactly what moved.
-
-- [x] `wpf_set_property` / `wpf_revert_property` — live-edit a dependency property, then undo *(v0.9.0)*
-- [x] `wpf_snapshot` / `wpf_diff` — before/after snapshot to verify a change's effect *(v0.10.0)*
-- [x] `wpf_evaluate_binding` — explain why a property has its value; resolve a binding path hop-by-hop *(v0.11.0)*
-- [x] `wpf_record` → `wpf_export_test` — stable-selector replay and fresh-process xUnit tests, including drag/touch *(v0.16.0)*
-- [x] `wpf_report` — bounded aggregate diagnostics with explicit coverage *(v0.16.0)*
-- [x] .NET Framework 4.7.2 and full-content scroll screenshots *(v0.16.0)*
-- [ ] Inspector-only NuGet package for self-hosted mode (reference instead of injection)
-- [ ] Streaming binding-error / property-change notifications to the MCP client
-- [ ] WinUI 3 support
-
-**See [docs/ROADMAP.md](docs/ROADMAP.md) for the full prioritized plan** (rationale,
-design notes, effort, and suggested sequencing).
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Development Setup
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/gaoshang212/WpfLens.git
-   cd WpfLens
-   ```
-
-2. Open in Visual Studio 2022 or VS Code:
-   ```bash
-   code .
-   # or
-   start WpfVisualTreeMcp.sln
-   ```
-
-3. Build and run tests:
-   ```bash
-   dotnet build
-   dotnet test
-   ```
-
-4. Run the sample WPF app for testing:
-   ```bash
-   dotnet run --project samples/SampleWpfApp
-   ```
-
-### Project Structure
-
-```
-WpfVisualTreeMcp/
-├── src/
-│   ├── WpfVisualTreeMcp.Server/        # MCP Server (.NET 8) - Uses official MCP SDK
-│   │   ├── Program.cs                  # Server initialization with MCP SDK
-│   │   ├── WpfTools.cs                 # 38 inspection, interaction and workflow tools
-│   │   ├── Cli/CliRunner.cs            # One-shot CLI front-end (v0.4.0)
-│   │   └── Services/                   # Process & IPC management
-│   ├── WpfVisualTreeMcp.Inspector/     # Injected DLL (Framework 4.7.2/4.8/4.8.1; .NET 8/9/10)
-│   ├── WpfVisualTreeMcp.Injector/      # Managed injection logic (CreateRemoteThread; net48 + net8.0)
-│   ├── WpfVisualTreeMcp.InjectorHelper/# x86 .NET 8 helper exe for cross-arch injection (v0.6.0)
-│   ├── WpfVisualTreeMcp.Bootstrapper/  # Native C++ DLL for CLR hosting
-│   └── WpfVisualTreeMcp.Shared/        # Shared models & IPC contracts
-├── samples/
-│   └── SampleWpfApp/                   # Test application
-├── tests/
-│   ├── WpfVisualTreeMcp.Tests/         # Unit tests
-│   └── WpfVisualTreeMcp.IntegrationTests/ # Live WPF integration tests
-├── publish/                            # Published server + native DLLs
-│   └── native/{x64,x86}/              # Architecture-specific bootstrapper
-└── docs/                               # Documentation
-```
-
-### Technical Details
-
-- **MCP SDK**: Built with the [official C# MCP SDK](https://github.com/modelcontextprotocol/csharp-sdk) from Microsoft/Anthropic
-- **Protocol**: JSON-RPC 2.0 over stdio transport
-- **Target Framework**: .NET 8.0 (Server) / .NET Framework 4.7.2, 4.8 and .NET 8.0-windows (Inspector)
-- **IPC**: Named Pipes for server-to-application communication
-- **Tools**: 38 tools auto-discovered via `[McpServerTool]` attributes, covering inspection, diagnostics, interaction and workflow recording/testing. Replay performs recorded actions; full-content screenshots may temporarily scroll controls.
-- **CLI**: same executable runs as one-shot CLI when given a subcommand (`Program.cs` routes via `CliRunner.IsCliCommand`)
-
-## Acknowledgments
-
-- Inspired by [Snoop WPF](https://github.com/snoopwpf/snoopwpf) - the original WPF spy utility
-- Built on the [Model Context Protocol](https://modelcontextprotocol.io/) by Anthropic
-- Thanks to the .NET and WPF community
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Licensed under the [MIT License](LICENSE).
