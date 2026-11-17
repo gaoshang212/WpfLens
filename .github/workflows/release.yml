@@ -11,15 +11,8 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  release:
+  prepare:
     runs-on: windows-latest
-    permissions:
-      contents: write    # create the GitHub release
-      id-token: write    # NuGet trusted publishing (OIDC) - no API key secret needed
-    env:
-      # secrets can't be referenced directly in step-level if: - surface presence as a plain string
-      HAS_NUGET_USER: ${{ secrets.NUGET_USER != '' }}
-
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -53,6 +46,9 @@ jobs:
       shell: pwsh
       run: ./scripts/Build-NativeBootstrapper.ps1
 
+    - name: Cache NuGet dependencies
+      uses: ./.github/actions/nuget-cache
+
     - name: Restore dependencies
       run: dotnet restore WpfVisualTreeMcp.sln
 
@@ -67,29 +63,6 @@ jobs:
 
     - name: Pack C# automation SDK
       run: dotnet pack src/WpfVisualTreeMcp.Automation/WpfVisualTreeMcp.Automation.csproj --no-build --configuration Release --output ./artifacts/packages
-
-    - name: Install x86 .NET 8, 9 and 10 runtimes for compatibility tests
-      shell: pwsh
-      run: |
-        Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile "$env:RUNNER_TEMP/dotnet-install.ps1"
-        foreach ($channel in @('8.0', '9.0', '10.0')) {
-          foreach ($runtime in @('dotnet', 'windowsdesktop')) {
-            & pwsh -NoProfile -File "$env:RUNNER_TEMP/dotnet-install.ps1" -Channel $channel -Runtime $runtime -Architecture x86 -InstallDir "$env:RUNNER_TEMP/dotnet-x86" -NoPath
-            if ($LASTEXITCODE -ne 0) { throw "Failed to install x86 $runtime $channel" }
-          }
-        }
-        "DOTNET_ROOT_X86=$env:RUNNER_TEMP/dotnet-x86" >> $env:GITHUB_ENV
-
-    - name: Test standalone NuGet consumer and exported xUnit tests
-      run: python ./scripts/test_automation_package.py --packages ./artifacts/packages
-
-    - name: Test published injection (x64 and x86)
-      shell: pwsh
-      run: ./scripts/Test-Injection.ps1 -ServerDirectory ./publish/server
-
-    - name: Test framework, architecture and screenshot matrix
-      shell: pwsh
-      run: ./tests/run-integration-tests.ps1 -ServerDirectory ./publish/server
 
     - name: Publish Inspector DLL
       run: dotnet publish src/WpfVisualTreeMcp.Inspector/WpfVisualTreeMcp.Inspector.csproj --configuration Release --framework net8.0-windows --output ./publish/inspector
@@ -129,14 +102,61 @@ jobs:
       run: |
         ./scripts/Build-McpBundle.ps1 -OutputDirectory ./artifacts/mcpb-full
 
-    - name: Test MCPB workflow
-      shell: pwsh
-      run: |
-        $matrix = Get-ChildItem ./TestResults -Directory -Filter 'matrix-*' | Select-Object -First 1
-        if (-not $matrix) { throw 'Integration matrix samples are missing' }
-        $sample = Join-Path $matrix.FullName 'samples/net8.0-windows/x64/AutoInjection/SampleWpfApp.exe'
-        python ./scripts/test_workflow.py --server ./artifacts/mcpb-full/bundle/server/WpfVisualTreeMcp.Server.exe --sample $sample
-        if ($LASTEXITCODE -ne 0) { throw 'MCPB workflow test failed' }
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-server
+        path: publish/server
+        include-hidden-files: true
+        if-no-files-found: error
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-packages
+        path: artifacts/packages/*.nupkg
+        if-no-files-found: error
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-mcpb
+        path: artifacts/mcpb-full/*.mcpb
+        if-no-files-found: error
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-archive
+        path: WpfLens-*-win-x64.zip
+        if-no-files-found: error
+
+  compatibility:
+    needs: prepare
+    uses: ./.github/workflows/compatibility.yml
+    with:
+      server-artifact: release-server
+      packages-artifact: release-packages
+      bundle-artifact: release-mcpb
+
+  release:
+    needs: [prepare, compatibility]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      HAS_NUGET_USER: ${{ secrets.NUGET_USER != '' }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    - uses: actions/download-artifact@v4
+      with:
+        name: release-packages
+        path: artifacts/packages
+    - uses: actions/download-artifact@v4
+      with:
+        name: release-mcpb
+        path: artifacts/mcpb-full
+    - uses: actions/download-artifact@v4
+      with:
+        name: release-archive
+        path: .
 
     # Trusted publishing (OIDC): requires a policy at nuget.org/account/trustedpublishing
     # for repo gaoshang212/WpfLens, workflow release.yml, both packages

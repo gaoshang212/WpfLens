@@ -1,0 +1,10 @@
+name: Cache NuGet dependencies
+description: Reuse third-party NuGet packages across builds
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ github.job }}-v1-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '**/packages.lock.json', '**/NuGet.Config', 'global.json') }}
+        restore-keys: nuget-${{ runner.os }}-${{ github.job }}-v1-

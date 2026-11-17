@@ -1,0 +1,153 @@
+name: Compatibility tests
+
+on:
+  workflow_call:
+    inputs:
+      server-artifact:
+        required: true
+        type: string
+      packages-artifact:
+        required: true
+        type: string
+      bundle-artifact:
+        default: ''
+        type: string
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      frameworks: ${{ steps.matrix.outputs.frameworks }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Verify shard coverage and cache isolation
+      run: python scripts/test_ci_package_shards.py
+    - id: matrix
+      shell: python
+      run: |
+        import json, os
+        from pathlib import Path
+        matrix = json.loads(Path('tests/compatibility-matrix.json').read_text())
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+            output.write('frameworks=' + json.dumps(matrix['targetFrameworks']) + '\n')
+
+  sdk:
+    needs: matrix
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        framework: ${{ fromJSON(needs.matrix.outputs.frameworks) }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install x86 .NET 8, 9 and 10 runtimes for compatibility tests
+      shell: pwsh
+      run: |
+        Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile "$env:RUNNER_TEMP/dotnet-install.ps1"
+        foreach ($channel in @('8.0', '9.0', '10.0')) {
+          foreach ($runtime in @('dotnet', 'windowsdesktop')) {
+            & pwsh -NoProfile -File "$env:RUNNER_TEMP/dotnet-install.ps1" -Channel $channel -Runtime $runtime -Architecture x86 -InstallDir "$env:RUNNER_TEMP/dotnet-x86" -NoPath
+            if ($LASTEXITCODE -ne 0) { throw "Failed to install x86 $runtime $channel" }
+          }
+        }
+        "DOTNET_ROOT_X86=$env:RUNNER_TEMP/dotnet-x86" >> $env:GITHUB_ENV
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.packages-artifact }}
+        path: artifacts/packages
+    # A fallback folder stores only third-party dependencies. The package under
+    # test is always restored into a fresh isolated directory from this run.
+    - uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/sdk-dependencies
+        key: sdk-deps-${{ runner.os }}-${{ matrix.framework }}-v1-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', 'scripts/test_automation_package.py', 'src/WpfVisualTreeMcp.Automation/AutomationTestExporter.cs') }}
+        restore-keys: sdk-deps-${{ runner.os }}-${{ matrix.framework }}-v1-
+    - name: Test standalone NuGet consumer and exported xUnit tests
+      run: python ./scripts/test_automation_package.py --packages ./artifacts/packages --framework ${{ matrix.framework }} --dependency-cache "${{ runner.temp }}/sdk-dependencies"
+    - name: Upload SDK diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: sdk-results-${{ matrix.framework }}
+        path: |
+          TestResults/sdk-package-*/*.log
+          TestResults/sdk-package-*/exported-*/**/*.json
+
+  desktop:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Cache NuGet dependencies
+      uses: ./.github/actions/nuget-cache
+
+    - name: Install x86 .NET 8, 9 and 10 runtimes for compatibility tests
+      shell: pwsh
+      run: |
+        Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile "$env:RUNNER_TEMP/dotnet-install.ps1"
+        foreach ($channel in @('8.0', '9.0', '10.0')) {
+          foreach ($runtime in @('dotnet', 'windowsdesktop')) {
+            & pwsh -NoProfile -File "$env:RUNNER_TEMP/dotnet-install.ps1" -Channel $channel -Runtime $runtime -Architecture x86 -InstallDir "$env:RUNNER_TEMP/dotnet-x86" -NoPath
+            if ($LASTEXITCODE -ne 0) { throw "Failed to install x86 $runtime $channel" }
+          }
+        }
+        "DOTNET_ROOT_X86=$env:RUNNER_TEMP/dotnet-x86" >> $env:GITHUB_ENV
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.server-artifact }}
+        path: publish/server
+    - name: Test published injection (x64 and x86)
+      shell: pwsh
+      run: ./scripts/Test-Injection.ps1 -ServerDirectory ./publish/server
+    - name: Test framework, architecture and screenshot matrix
+      shell: pwsh
+      run: ./tests/run-integration-tests.ps1 -ServerDirectory ./publish/server
+    - uses: actions/download-artifact@v4
+      if: inputs.bundle-artifact != ''
+      with:
+        name: ${{ inputs.bundle-artifact }}
+        path: artifacts/mcpb-full
+    - name: Test MCPB workflow
+      if: inputs.bundle-artifact != ''
+      shell: pwsh
+      run: |
+        $archive = Get-ChildItem ./artifacts/mcpb-full/*.mcpb | Select-Object -First 1
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [IO.Compression.ZipFile]::ExtractToDirectory($archive.FullName, "$pwd/artifacts/mcpb-full/extracted")
+        $matrix = Get-ChildItem ./TestResults -Directory -Filter 'matrix-*' | Select-Object -First 1
+        if (-not $matrix) { throw 'Integration matrix samples are missing' }
+        $sample = Join-Path $matrix.FullName 'samples/net8.0-windows/x64/AutoInjection/SampleWpfApp.exe'
+        python ./scripts/test_workflow.py --server ./artifacts/mcpb-full/extracted/server/WpfVisualTreeMcp.Server.exe --sample $sample
+        if ($LASTEXITCODE -ne 0) { throw 'MCPB workflow test failed' }
+    - name: Upload desktop diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: desktop-results
+        path: |
+          TestResults/**/*.log
+          **/TestResults/*.trx

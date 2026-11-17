@@ -30,7 +30,7 @@ jobs:
         $cli = Join-Path (npm root --global) '@openai/codex/bin/codex.js'
         python ./scripts/test-plugin.py --codex-cli $cli
 
-  build:
+  compile:
     runs-on: windows-latest
 
     steps:
@@ -51,6 +51,9 @@ jobs:
     - name: Build native bootstrapper (x86 and x64)
       shell: pwsh
       run: ./scripts/Build-NativeBootstrapper.ps1
+
+    - name: Cache NuGet dependencies
+      uses: ./.github/actions/nuget-cache
 
     - name: Restore dependencies
       run: dotnet restore WpfVisualTreeMcp.sln
@@ -74,40 +77,37 @@ jobs:
     - name: Pack C# automation SDK
       run: dotnet pack src/WpfVisualTreeMcp.Automation/WpfVisualTreeMcp.Automation.csproj --no-build --configuration Release --output ./artifacts/packages
 
-    - name: Install x86 .NET 8, 9 and 10 runtimes for compatibility tests
-      shell: pwsh
-      run: |
-        Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile "$env:RUNNER_TEMP/dotnet-install.ps1"
-        foreach ($channel in @('8.0', '9.0', '10.0')) {
-          foreach ($runtime in @('dotnet', 'windowsdesktop')) {
-            & pwsh -NoProfile -File "$env:RUNNER_TEMP/dotnet-install.ps1" -Channel $channel -Runtime $runtime -Architecture x86 -InstallDir "$env:RUNNER_TEMP/dotnet-x86" -NoPath
-            if ($LASTEXITCODE -ne 0) { throw "Failed to install x86 $runtime $channel" }
-          }
-        }
-        "DOTNET_ROOT_X86=$env:RUNNER_TEMP/dotnet-x86" >> $env:GITHUB_ENV
-
-    - name: Test standalone NuGet consumer and exported xUnit tests
-      run: python ./scripts/test_automation_package.py --packages ./artifacts/packages
-
     - name: Upload C# automation SDK
       uses: actions/upload-artifact@v4
       with:
         name: wpf-automation-nuget
         path: ./artifacts/packages/*.nupkg
 
-    - name: Test published injection (x64 and x86)
-      shell: pwsh
-      run: ./scripts/Test-Injection.ps1 -ServerDirectory ./publish
-
-    - name: Test framework, architecture and screenshot matrix
-      shell: pwsh
-      run: ./tests/run-integration-tests.ps1 -ServerDirectory ./publish
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: wpf-visual-tree-mcp
         path: ./publish
+        include-hidden-files: true
+
+  compatibility:
+    needs: compile
+    uses: ./.github/workflows/compatibility.yml
+    with:
+      server-artifact: wpf-visual-tree-mcp
+      packages-artifact: wpf-automation-nuget
+
+  # Preserve the original required check name: success still means all tests passed.
+  build:
+    if: always()
+    needs: [compile, compatibility]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Require successful build and compatibility tests
+      env:
+        COMPILE_RESULT: ${{ needs.compile.result }}
+        COMPATIBILITY_RESULT: ${{ needs.compatibility.result }}
+      run: test "$COMPILE_RESULT" = success && test "$COMPATIBILITY_RESULT" = success
 
   code-quality:
     runs-on: ubuntu-latest
@@ -123,9 +123,11 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    # The job-wide property enables Windows references for both restore and
-    # format's workspace loading on Linux.
+    - name: Cache NuGet dependencies
+      uses: ./.github/actions/nuget-cache
+
     - name: Restore dependencies
+      # Enables Windows references for restore and format on Linux.
       run: dotnet restore src/WpfVisualTreeMcp.Server/WpfVisualTreeMcp.Server.csproj -p:EnableWindowsTargeting=true
 
     - name: Check formatting
@@ -147,6 +149,9 @@ jobs:
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.3
+
+    - name: Cache NuGet dependencies
+      uses: ./.github/actions/nuget-cache
 
     - name: Restore NuGet packages
       run: dotnet restore WpfVisualTreeMcp.sln
