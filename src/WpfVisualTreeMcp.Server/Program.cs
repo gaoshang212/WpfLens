@@ -70,7 +70,8 @@ try
     builder.Services
         .AddMcpServer(options => options.ServerInfo = new()
         {
-            Name = "WpfLens", Version = SelfUpdater.CurrentVersion
+            Name = "WpfLens",
+            Version = SelfUpdater.CurrentVersion
         })
         .WithStdioServerTransport()
         .WithToolsFromAssembly();

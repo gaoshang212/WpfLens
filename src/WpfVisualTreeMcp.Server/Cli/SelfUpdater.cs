@@ -73,8 +73,11 @@ internal static class SelfUpdater
                 if (last.GetProperty("status").GetString() is not ("scheduled" or "running")) return last;
                 return JsonSerializer.SerializeToElement(new
                 {
-                    status = "failed", message = "The update worker exited without recording completion. Check the log and retry.",
-                    statusPath, logPath = last.GetProperty("logPath").GetString(), previousResult = last
+                    status = "failed",
+                    message = "The update worker exited without recording completion. Check the log and retry.",
+                    statusPath,
+                    logPath = last.GetProperty("logPath").GetString(),
+                    previousResult = last
                 }, JsonOptions);
             }
             return last;
@@ -90,9 +93,13 @@ internal static class SelfUpdater
         if (check || !available)
             return new
             {
-                status = available ? "update-available" : "up-to-date", currentVersion = CurrentVersion,
-                latestVersion = release.Version, installation = installation.Kind, directory = installation.Directory,
-                canSelfUpdate = installation.UnsupportedReason == null, note = installation.UnsupportedReason
+                status = available ? "update-available" : "up-to-date",
+                currentVersion = CurrentVersion,
+                latestVersion = release.Version,
+                installation = installation.Kind,
+                directory = installation.Directory,
+                canSelfUpdate = installation.UnsupportedReason == null,
+                note = installation.UnsupportedReason
             };
 
         Directory.CreateDirectory(stateDirectory);
@@ -134,17 +141,28 @@ internal static class SelfUpdater
         var planPath = Path.Combine(workDirectory, "plan.json");
         var plan = new
         {
-            parentId = Environment.ProcessId, parentStartTicks = Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks,
-            kind = installation.Kind, targetDirectory = installation.Directory,
-            currentVersion = CurrentVersion, version = release.Version, payloadDirectory, dotnet,
-            workDirectory, stateDirectory, statusPath
+            parentId = Environment.ProcessId,
+            parentStartTicks = Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks,
+            kind = installation.Kind,
+            targetDirectory = installation.Directory,
+            currentVersion = CurrentVersion,
+            version = release.Version,
+            payloadDirectory,
+            dotnet,
+            workDirectory,
+            stateDirectory,
+            statusPath
         };
         await File.WriteAllTextAsync(planPath, JsonSerializer.Serialize(plan, JsonOptions));
         var start = new ProcessStartInfo(PowerShellPath)
         {
-            UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = workDirectory,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = workDirectory,
             // Do not inherit a CLI/MCP caller's stdout pipes: the worker writes its own log.
-            RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true
         };
         foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", worker, "-PlanFile", planPath })
             start.ArgumentList.Add(arg);
@@ -154,10 +172,15 @@ internal static class SelfUpdater
             process.StandardInput.Close();
             var scheduled = new
             {
-                status = "scheduled", currentVersion = CurrentVersion, latestVersion = release.Version,
-                installation = installation.Kind, directory = installation.Directory,
-                updaterProcessId = process.Id, updaterStartTicks = process.StartTime.ToUniversalTime().Ticks,
-                logPath = Path.Combine(workDirectory, "update.log"), statusPath,
+                status = "scheduled",
+                currentVersion = CurrentVersion,
+                latestVersion = release.Version,
+                installation = installation.Kind,
+                directory = installation.Directory,
+                updaterProcessId = process.Id,
+                updaterStartTicks = process.StartTime.ToUniversalTime().Ticks,
+                logPath = Path.Combine(workDirectory, "update.log"),
+                statusPath,
                 message = "The updater will start after this command exits. Run 'update --status' to confirm completion. Restart the MCP client and inspected apps after updating."
             };
             await File.WriteAllTextAsync(statusPath, JsonSerializer.Serialize(scheduled, JsonOptions));
@@ -335,7 +358,10 @@ internal static class SelfUpdater
         if (string.IsNullOrEmpty(dotnet) || !File.Exists(dotnet)) dotnet = "dotnet";
         var start = new ProcessStartInfo(dotnet)
         {
-            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
             WorkingDirectory = Path.GetTempPath()
         };
         start.ArgumentList.Add("--list-sdks");

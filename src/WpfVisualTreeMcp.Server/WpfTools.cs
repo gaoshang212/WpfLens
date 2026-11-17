@@ -496,8 +496,14 @@ public class WpfTools
         {
             ElementHandle = ElementTarget.Validate(element_handle, automation_id, root_handle),
             TargetHandle = ElementTarget.ValidateOptional(target_handle, target_automation_id, target_root_handle),
-            DeltaX = delta_x, DeltaY = delta_y, StartX = start_x, StartY = start_y,
-            TargetX = target_x, TargetY = target_y, Button = button, DurationMs = duration_ms
+            DeltaX = delta_x,
+            DeltaY = delta_y,
+            StartX = start_x,
+            StartY = start_y,
+            TargetX = target_x,
+            TargetY = target_y,
+            Button = button,
+            DurationMs = duration_ms
         };
         try { options.Validate(); }
         catch (ArgumentException ex) { throw new McpException(ex.Message); }
@@ -506,11 +512,15 @@ public class WpfTools
         var result = await _ipcBridge.DragAsync(options);
         return new
         {
-            success = true, method = result.Method, element_type = result.ElementType,
-            button = result.Button, duration_ms = result.DurationMs,
+            success = true,
+            method = result.Method,
+            element_type = result.ElementType,
+            button = result.Button,
+            duration_ms = result.DurationMs,
             start = new { x = result.StartX, y = result.StartY },
             end = new { x = result.EndX, y = result.EndY },
-            coordinate_space = "screen_pixels", detail = result.Detail
+            coordinate_space = "screen_pixels",
+            detail = result.Detail
         };
     }
 
@@ -524,8 +534,15 @@ public class WpfTools
         var options = new TouchGestureOptions
         {
             ElementHandle = ElementTarget.Validate(element_handle, automation_id, root_handle),
-            Gesture = gesture, X = x, Y = y, DeltaX = delta_x, DeltaY = delta_y,
-            Scale = scale, AngleDegrees = angle_degrees, Radius = radius, DurationMs = duration_ms
+            Gesture = gesture,
+            X = x,
+            Y = y,
+            DeltaX = delta_x,
+            DeltaY = delta_y,
+            Scale = scale,
+            AngleDegrees = angle_degrees,
+            Radius = radius,
+            DurationMs = duration_ms
         };
         try { options.Validate(); }
         catch (ArgumentException ex) { throw new McpException(ex.Message); }
@@ -533,9 +550,16 @@ public class WpfTools
         var result = await _ipcBridge.TouchGestureAsync(options);
         return new
         {
-            success = true, method = result.Method, gesture = result.Gesture, element_type = result.ElementType,
-            contact_count = result.ContactCount, duration_ms = result.DurationMs, start = result.Start, end = result.End,
-            coordinate_space = "screen_pixels", detail = result.Detail
+            success = true,
+            method = result.Method,
+            gesture = result.Gesture,
+            element_type = result.ElementType,
+            contact_count = result.ContactCount,
+            duration_ms = result.DurationMs,
+            start = result.Start,
+            end = result.End,
+            coordinate_space = "screen_pixels",
+            detail = result.Detail
         };
     }
 
