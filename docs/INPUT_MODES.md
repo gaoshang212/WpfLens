@@ -5,20 +5,19 @@ command. MCP uses the attached process, and the SDK uses its `WpfApplication` in
 
 ## Usage
 
-This feature is unreleased. Use the server built from this branch and confirm that
-`set-input-mode --help` lists both `foreground` and `background`. Older CLI versions
-may silently ignore unknown arguments.
+Background input requires WpfLens 0.23.0 or later. Run
+`wpflens set-input-mode --help` to confirm that the installed CLI lists
+both `foreground` and `background`.
 
 ```powershell
-$wpflens = ".\src\WpfVisualTreeMcp.Server\bin\Release\net8.0\WpfVisualTreeMcp.Server.exe"
-& $wpflens set-input-mode --pid 1234 --mode background
-& $wpflens click --pid 1234 --automation-id SaveButton --physical
-& $wpflens move-mouse --pid 1234 --automation-id HoverButton
-& $wpflens set-input-mode --pid 1234 --mode foreground
-& $wpflens screenshot --pid 1234 --mode screen --out foreground.png
-& $wpflens set-input-mode --pid 1234 --mode background
-& $wpflens set-text --pid 1234 --automation-id SearchBox --physical --text 'Background input'
-& $wpflens set-input-mode --pid 1234 --mode foreground
+wpflens set-input-mode --pid 1234 --mode background
+wpflens click --pid 1234 --automation-id SaveButton --physical
+wpflens move-mouse --pid 1234 --automation-id HoverButton
+wpflens set-input-mode --pid 1234 --mode foreground
+wpflens screenshot --pid 1234 --mode screen --out foreground.png
+wpflens set-input-mode --pid 1234 --mode background
+wpflens set-text --pid 1234 --automation-id SearchBox --physical --text 'Background input'
+wpflens set-input-mode --pid 1234 --mode foreground
 ```
 
 To enable background input, call `wpf_set_input_mode(mode="background")` in MCP

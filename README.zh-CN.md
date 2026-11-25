@@ -97,7 +97,7 @@ codex plugin add wpflens@WpfLens
 | 截图与导出 | 元素/窗口截图、完整滚动内容捕获、XAML/JSON 树导出 |
 | 测试工作流 | 使用稳定选择器录制与回放，导出可运行的 xUnit 测试 |
 
-MCP 服务和 CLI 通过共享引擎提供 38 个工具。名称及用途见 [MCP 工具表](docs/MCP_TOOLS.md)，完整参数与示例见[工具参考](docs/TOOLS_REFERENCE.md)。
+MCP 服务提供 39 个工具，与 CLI 共用同一引擎。名称及用途见 [MCP 工具表](docs/MCP_TOOLS.md)，完整参数与示例见[工具参考](docs/TOOLS_REFERENCE.md)。
 
 - 触摸需要应用支持，物理输入需要交互式桌面。
 - 使用 MCP 时，调用 `wpf_set_input_mode(mode="background")` 开启后台输入。操作和验证结束后，即使中途失败或取消，也要对同一目标调用 `wpf_set_input_mode(mode="foreground")`，确认返回 `foreground` 后再将鼠标和键盘交还给用户。
@@ -116,7 +116,7 @@ MCP 服务和 CLI 通过共享引擎提供 38 个工具。名称及用途见 [MC
 ## C# 测试 SDK
 
 ```powershell
-dotnet add package WpfLens.Automation --version 0.22.0
+dotnet add package WpfLens.Automation --version 0.23.0
 ```
 
 ```csharp
@@ -229,7 +229,7 @@ dotnet run --project samples/SampleWpfApp
 | 文档 | 内容 |
 | --- | --- |
 | [入门指南](docs/GETTING_STARTED.md) | 补充配置、自托管、更新恢复和故障排查 |
-| [MCP 工具表](docs/MCP_TOOLS.md) | 38 个工具的名称及简要用途 |
+| [MCP 工具表](docs/MCP_TOOLS.md) | 39 个工具的名称及简要用途 |
 | [工具参考](docs/TOOLS_REFERENCE.md) | 全部 MCP 工具、选择器、录制/回放与验证 |
 | [C# SDK](src/WpfVisualTreeMcp.Automation/README.md) | SDK 安装、API 示例和要求 |
 | [架构](docs/ARCHITECTURE.md) | 组件、IPC 和线程机制 |

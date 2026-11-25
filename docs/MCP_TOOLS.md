@@ -1,8 +1,8 @@
 # MCP tools / MCP 工具表
 
-WpfLens provides the following 38 MCP tools. See the [tool reference](TOOLS_REFERENCE.md) for parameters, examples and usage constraints.
+WpfLens provides the following 39 MCP tools. See the [tool reference](TOOLS_REFERENCE.md) for parameters, examples and usage constraints.
 
-WpfLens 提供以下 38 个 MCP 工具。参数、示例及使用限制详见[工具参考](TOOLS_REFERENCE.md)。
+WpfLens 提供以下 39 个 MCP 工具。参数、示例及使用限制详见[工具参考](TOOLS_REFERENCE.md)。
 
 | Tool / 工具 | Description | 中文说明 |
 | --- | --- | --- |
@@ -28,6 +28,7 @@ WpfLens 提供以下 38 个 MCP 工具。参数、示例及使用限制详见[�
 | `wpf_set_property` | Edit a dependency property at runtime | 运行时修改依赖属性 |
 | `wpf_revert_property` | Undo property edits and restore prior values or bindings | 撤销属性编辑，恢复原值或绑定 |
 | `wpf_highlight_element` | Highlight an element in the application | 在应用中高亮元素 |
+| `wpf_set_input_mode` | Switch mouse and keyboard input between foreground and background for the attached process | 切换已附加进程的前台或后台鼠标、键盘输入模式 |
 | `wpf_click_element` | Click a control, including double/right clicks | 点击控件，支持双击和右键 |
 | `wpf_move_mouse` | Move or hover at an element-local point | 移动或悬停到元素局部坐标 |
 | `wpf_scroll` | Send vertical or horizontal wheel input | 发送垂直或水平滚轮输入 |

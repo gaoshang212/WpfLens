@@ -99,6 +99,9 @@ For an available CLI fallback, use `help` or `<command> --help`. Mouse and touch
 
 ## Version compatibility
 
+Background input and recorded `SetInputMode` steps require server and Inspector
+v0.23.0 or newer. The v0.23.0 server exposes 39 MCP tools.
+
 Independent context-menu/submenu search roots require Inspector v0.22.0 or newer.
 On an older Inspector, an empty menu search does not establish that the menu is
 closed. Report the search coverage limit and use a scoped screenshot if a rendered

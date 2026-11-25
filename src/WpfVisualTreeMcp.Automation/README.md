@@ -2,7 +2,7 @@
 
 The WpfLens C# SDK package retains the `WpfVisualTreeMcp.Automation` namespace
 and assembly name for compatibility with upstream source. Install
-`WpfLens.Automation` 0.22.0 from NuGet.
+`WpfLens.Automation` 0.23.0 from NuGet.
 
 Write C# tests against running Windows WPF applications. The package includes the
 Inspector, x64/x86 native bootstrapper and x86 injection helper. It talks directly
@@ -222,7 +222,7 @@ property subscriptions remain C# test setup/teardown, not recorded workflow step
 Install from nuget.org in your test project:
 
 ```powershell
-dotnet add YourTests.csproj package WpfLens.Automation --version 0.22.0
+dotnet add YourTests.csproj package WpfLens.Automation --version 0.23.0
 ```
 
 The Inspector and native bootstrapper are included. Cross-architecture injection
@@ -242,7 +242,7 @@ Add `--gestures` on an unlocked desktop for real mouse drag and touch checks.
 For a source build, first run `scripts/Build-NativeBootstrapper.ps1`, then
 `dotnet pack src/WpfVisualTreeMcp.Automation -c Release -o artifacts/packages`.
 
-## Background input (source branch)
+## Background input
 
 Use `await app.SetInputModeAsync("background")` to route physical mouse and keyboard
 input across SDK, CLI and MCP calls. Switch to `"foreground"` before screen capture
