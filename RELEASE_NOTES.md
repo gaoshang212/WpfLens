@@ -1,3 +1,34 @@
+# WpfLens 0.23.0
+
+Click, hover, scroll, drag or type in a visible WPF window while you work in
+another application. The target can be covered by other windows.
+
+## Changes
+
+- Select `background` with the `wpf_set_input_mode` MCP tool, the
+  `set-input-mode` CLI command or the C# SDK's `SetInputModeAsync`. Callers
+  attached to the same process share one window binding and its virtual hover
+  and keyboard focus. Switch to `foreground` to release the window, including
+  after a failed workflow.
+- Record and replay foreground and background mode changes in version 1
+  workflows. Exported xUnit tests replay the same changes.
+- The server and SDK packages include the x86 and x64 native components for
+  background input. See the [background input guide](docs/INPUT_MODES.md) for
+  supported operations and window requirements.
+
+## Installation
+
+```powershell
+dotnet tool install --global WpfLens.Mcp --version 0.23.0
+dotnet add package WpfLens.Automation --version 0.23.0
+```
+
+Existing CLI installations can use `wpflens update`. To load the new Inspector,
+restart the inspected application and reattach. For the Codex plugin, refresh
+the marketplace, reinstall `wpflens@WpfLens` and restart the MCP server.
+
+---
+
 # WpfLens 0.22.0
 
 Find and verify open context menus and expanded submenus through the same element

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-25
+
+### Added
+
+- Use background mouse and keyboard input on a visible WPF window while another
+  application stays in the foreground. MCP, CLI and C# SDK callers share one
+  background window binding per target process. Switch to foreground mode to
+  release the window for manual input.
+- Record input mode changes in version 1 workflows and replay them from the
+  MCP server, CLI, C# SDK and exported xUnit tests.
+- Read the project overview and getting-started instructions in the new Chinese README.
+
 ## [0.22.0] - 2026-11-16
 
 ### Fixed

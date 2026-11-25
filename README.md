@@ -99,7 +99,7 @@ The app and SDK test project may use different frameworks. See the tested [compa
 | Capture and export | Element/window screenshots, full scrollable-content capture, XAML/JSON tree export |
 | Test workflows | Record and replay with stable selectors; export runnable xUnit tests |
 
-The MCP server and CLI expose 38 tools through a shared engine. Browse the [MCP tool index](docs/MCP_TOOLS.md), or see the [tool reference](docs/TOOLS_REFERENCE.md) for parameters and examples.
+The MCP server exposes 39 tools through the same engine as the CLI. Browse the [MCP tool index](docs/MCP_TOOLS.md), or see the [tool reference](docs/TOOLS_REFERENCE.md) for parameters and examples.
 
 - Touch requires application support; physical input needs an interactive desktop.
 - In MCP, enable background input with `wpf_set_input_mode(mode="background")`. After the final action and verification, call `wpf_set_input_mode(mode="foreground")` on the same target to release its mouse and keyboard. Run this cleanup even if the workflow fails or is cancelled. Confirm the response reports `foreground` before returning control to the user.
@@ -118,7 +118,7 @@ The MCP server and CLI expose 38 tools through a shared engine. Browse the [MCP 
 ## C# test SDK
 
 ```powershell
-dotnet add package WpfLens.Automation --version 0.22.0
+dotnet add package WpfLens.Automation --version 0.23.0
 ```
 
 ```csharp
@@ -231,7 +231,7 @@ Open `WpfVisualTreeMcp.sln` in Visual Studio 2022, or use VS Code. Contributions
 | Guide | Contents |
 | --- | --- |
 | [Getting started](docs/GETTING_STARTED.md) | Additional configuration, self-hosting, update recovery and troubleshooting |
-| [MCP tool index](docs/MCP_TOOLS.md) | Names and brief descriptions of all 38 tools |
+| [MCP tool index](docs/MCP_TOOLS.md) | Names and brief descriptions of all 39 tools |
 | [Tool reference](docs/TOOLS_REFERENCE.md) | All MCP tools, selectors, recording/replay and verification |
 | [C# SDK](src/WpfVisualTreeMcp.Automation/README.md) | SDK installation, API examples and requirements |
 | [Architecture](docs/ARCHITECTURE.md) | Components, IPC and threading |

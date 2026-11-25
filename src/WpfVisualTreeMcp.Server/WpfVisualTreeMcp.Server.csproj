@@ -10,7 +10,7 @@
 
     <!-- Package metadata -->
     <PackageId>WpfLens.Mcp</PackageId>
-    <Version>0.22.0</Version>
+    <Version>0.23.0</Version>
     <Title>WpfLens MCP and CLI</Title>
     <Description>Inspect and drive WPF apps through MCP or CLI: visual trees, bindings, screenshots, mouse dragging and native touch gestures.</Description>
     <PackageTags>mcp;wpf;visual-tree;debugging;dotnet;ai-agents</PackageTags>
