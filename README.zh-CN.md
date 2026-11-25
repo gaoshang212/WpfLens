@@ -93,12 +93,14 @@ codex plugin add wpflens@WpfLens
 | 诊断 | 绑定错误、DataContext、绑定路径解析、触发器解释和聚合报告 |
 | 搜索与验证 | 精确 AutomationId 定位、文本/属性过滤、条件等待、断言、属性监视及快照差异 |
 | 交互 | 点击、悬停、滚轮、拖动、触摸、文本、快捷键、虚拟化选项选择，以及可撤销的属性编辑 |
+| 后台输入 | 通过 MCP、CLI 或 C# SDK 对被遮挡的 WPF 窗口执行点击、悬停、滚动、窗口内拖动、文本输入和按键。目标窗口无需切到前台，系统鼠标指针保持原位。[用法与支持范围](docs/INPUT_MODES.md) |
 | 截图与导出 | 元素/窗口截图、完整滚动内容捕获、XAML/JSON 树导出 |
 | 测试工作流 | 使用稳定选择器录制与回放，导出可运行的 xUnit 测试 |
 
 MCP 服务和 CLI 通过共享引擎提供 38 个工具。名称及用途见 [MCP 工具表](docs/MCP_TOOLS.md)，完整参数与示例见[工具参考](docs/TOOLS_REFERENCE.md)。
 
 - 触摸需要应用支持，物理输入需要交互式桌面。
+- 使用 MCP 时，调用 `wpf_set_input_mode(mode="background")` 开启后台输入。操作和验证结束后，即使中途失败或取消，也要对同一目标调用 `wpf_set_input_mode(mode="foreground")`，确认返回 `foreground` 后再将鼠标和键盘交还给用户。
 - 输入和回放会改变应用状态，完整内容截图可能临时滚动控件。
 - 使用等待和断言验证结果，详见[验证工作流](docs/TOOLS_REFERENCE.md#verification)。
 

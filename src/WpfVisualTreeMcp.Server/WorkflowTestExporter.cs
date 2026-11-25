@@ -14,7 +14,13 @@ public static class WorkflowTestExporter
         var files = new Dictionary<string, string> { ["workflow.json"] = IpcSerializer.Serialize(state.Workflow) };
         if (format == "json") return files;
         if (format != "xunit") throw new ArgumentException("Export format must be xunit or json.");
-        files["RecordedWorkflow.Tests.csproj"] = """
+        files["RecordedWorkflow.Tests.csproj"] = ProjectTemplate;
+        files["WorkflowTests.cs"] = TestTemplate;
+        files["README.md"] = ReadmeTemplate;
+        return files;
+    }
+
+    private const string ProjectTemplate = """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net8.0-windows</TargetFramework>
@@ -31,7 +37,8 @@ public static class WorkflowTestExporter
               </ItemGroup>
             </Project>
             """;
-        files["WorkflowTests.cs"] = """
+
+    private const string TestTemplate = """
             using System.Diagnostics;
             using System.Text.Json;
             using Xunit;
@@ -43,6 +50,10 @@ public static class WorkflowTestExporter
                 {
                     string appPath = Required("WPF_TEST_APP");
                     string cliPath = Required("WPFINSPECT_PATH");
+                    string workflowPath = Path.Combine(AppContext.BaseDirectory, "workflow.json");
+                    using var workflow = JsonDocument.Parse(await File.ReadAllTextAsync(workflowPath));
+                    bool hasInputModeSwitch = workflow.RootElement.GetProperty("steps").EnumerateArray()
+                        .Any(step => step.GetProperty("action").GetString() == "SetInputMode");
                     var startup = new ProcessStartInfo(appPath) { UseShellExecute = false,
                         WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(appPath))! };
                     var arguments = Environment.GetEnvironmentVariable("WPF_TEST_APP_ARGS_JSON");
@@ -65,13 +76,21 @@ public static class WorkflowTestExporter
                             await Task.Delay(100);
                         }
                         await Cli(cliPath, "attach", "--pid", pid, "--auto-inject");
-                        var replay = await Cli(cliPath, "replay", "--pid", pid, "--file", Path.Combine(AppContext.BaseDirectory, "workflow.json"));
+                        var replay = await Cli(cliPath, "replay", "--pid", pid, "--file", workflowPath);
                         using var result = JsonDocument.Parse(replay);
                         Assert.True(result.RootElement.GetProperty("success").GetBoolean(), replay);
                     }
                     finally
                     {
-                        if (!app.HasExited) { app.Kill(entireProcessTree: true); await app.WaitForExitAsync(); }
+                        try
+                        {
+                            if (!app.HasExited && hasInputModeSwitch)
+                                await Cli(cliPath, "set-input-mode", "--mode", "foreground", "--pid", app.Id.ToString());
+                        }
+                        finally
+                        {
+                            if (!app.HasExited) { app.Kill(entireProcessTree: true); await app.WaitForExitAsync(); }
+                        }
                     }
                 }
 
@@ -97,7 +116,8 @@ public static class WorkflowTestExporter
                 }
             }
             """;
-        files["README.md"] = """
+
+    private const string ReadmeTemplate = """
             # Recorded WPF workflow test
 
             Install .NET 8 SDK and WpfLens CLI with workflow support. In PowerShell:
@@ -119,6 +139,4 @@ public static class WorkflowTestExporter
             only; include explicit waits for asynchronous UI changes. Replay stops at the first
             failure, reports its one-based step number and does not undo earlier actions.
             """;
-        return files;
-    }
 }

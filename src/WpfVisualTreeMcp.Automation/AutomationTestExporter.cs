@@ -16,7 +16,12 @@ internal static class AutomationTestExporter
         var packageVersion = System.Reflection.CustomAttributeExtensions
             .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(WpfApplication).Assembly)!
             .InformationalVersion.Split('+')[0];
-        files["RecordedWorkflow.Tests.csproj"] = $$"""
+        files["RecordedWorkflow.Tests.csproj"] = ProjectTemplate.Replace("__SDK_VERSION__", packageVersion);
+        files["RecordedWorkflowTest.cs"] = TestTemplate;
+        return files;
+    }
+
+    private const string ProjectTemplate = """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net8.0-windows</TargetFramework>
@@ -24,7 +29,7 @@ internal static class AutomationTestExporter
                 <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
               </PropertyGroup>
               <ItemGroup>
-                <PackageReference Include="WpfLens.Automation" Version="{{packageVersion}}" />
+                <PackageReference Include="WpfLens.Automation" Version="__SDK_VERSION__" />
                 <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
                 <PackageReference Include="xunit" Version="2.6.3" />
                 <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4" PrivateAssets="all" />
@@ -32,7 +37,8 @@ internal static class AutomationTestExporter
               </ItemGroup>
             </Project>
             """;
-        files["RecordedWorkflowTest.cs"] = """
+
+    private const string TestTemplate = """
             using WpfVisualTreeMcp.Automation;
             using WpfVisualTreeMcp.Shared.Ipc;
             using WpfVisualTreeMcp.Shared.Models;
@@ -49,11 +55,16 @@ internal static class AutomationTestExporter
                     await using var app = await WpfApplication.LaunchAsync(new LaunchOptions { FileName = path });
                     var workflow = IpcSerializer.Deserialize<RecordedWorkflow>(
                         await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "workflow.json")))!;
-                    var result = await app.ReplayAsync(workflow);
-                    Assert.True(result.Success, $"Replay failed at step {result.FailedStep}: {result.Error}");
+                    try
+                    {
+                        var result = await app.ReplayAsync(workflow);
+                        Assert.True(result.Success, $"Replay failed at step {result.FailedStep}: {result.Error}");
+                    }
+                    finally
+                    {
+                        if (workflow.HasInputModeSwitch()) await app.SetInputModeAsync("foreground");
+                    }
                 }
             }
             """;
-        return files;
-    }
 }

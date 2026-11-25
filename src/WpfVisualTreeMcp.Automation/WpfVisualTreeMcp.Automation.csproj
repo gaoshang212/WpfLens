@@ -47,7 +47,10 @@
   <Target Name="PackAutomationPayload" BeforeTargets="_GetPackageFiles" DependsOnTargets="CollectInjectionPayload;ValidateInjectionPayload">
     <ItemGroup>
       <None Include="@(ContentWithTargetPath)" Condition="$([System.String]::Copy('%(ContentWithTargetPath.TargetPath)').StartsWith('native\'))"
-            Pack="true" PackagePath="payload/%(ContentWithTargetPath.TargetPath)" />
+            Pack="true" PackagePath="payload/%(ContentWithTargetPath.TargetPath)">
+        <!-- NuGet treats an extensionless PackagePath as a directory. -->
+        <PackagePath Condition="'%(ContentWithTargetPath.Extension)' == ''">payload/$([System.IO.Path]::GetDirectoryName('%(ContentWithTargetPath.TargetPath)'))/</PackagePath>
+      </None>
     </ItemGroup>
   </Target>
 </Project>

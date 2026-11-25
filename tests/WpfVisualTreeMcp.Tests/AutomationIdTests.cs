@@ -136,6 +136,158 @@ public class AutomationIdTests
         IpcSerializer.SerializeRequest(replay).Should().Contain("\"automationId\":\"save\"");
     }
 
+    [Fact]
+    public async Task Old_inspector_cannot_fall_back_to_foreground_for_background_input()
+    {
+        using var pipe = Pipe();
+        var response = Reply(pipe, data =>
+        {
+            data.type.Should().Be("GetCapabilities");
+            return new GetCapabilitiesResponse();
+        });
+        var act = () => Bridge().SetInputModeAsync("background");
+        await act.Should().ThrowAsync<McpException>().WithMessage("*set-input-mode*");
+        await response;
+    }
+
+    [Fact]
+    public async Task Coordinate_click_probes_capabilities_once_per_operation()
+    {
+        using var pipe = Pipe();
+        var responses = Task.Run(async () =>
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                await Reply(pipe, envelope =>
+                {
+                    envelope.type.Should().Be("GetCapabilities");
+                    return new GetCapabilitiesResponse { CoordinatePointerInput = true };
+                });
+                pipe.Disconnect();
+                await Reply(pipe, envelope =>
+                {
+                    envelope.type.Should().Be("ClickElement");
+                    var request = IpcSerializer.DeserializeRequestData<ClickElementRequest>(envelope.data)!;
+                    envelope.data.TryGetProperty("inputMode", out _).Should().BeFalse();
+                    request.X.Should().Be(10);
+                    request.Y.Should().Be(20);
+                    return new ClickElementResponse { Method = "Background" };
+                });
+                pipe.Disconnect();
+            }
+        });
+        var bridge = Bridge();
+        for (var i = 0; i < 2; i++)
+            (await bridge.ClickElementAsync("target", false, x: 10, y: 20))
+                .Method.Should().Be("Background");
+        await responses;
+    }
+
+    [Fact]
+    public async Task Replay_without_mode_switch_or_other_new_actions_needs_no_capability_probe()
+    {
+        using var pipe = Pipe();
+        var response = Reply(pipe, envelope =>
+        {
+            envelope.type.Should().Be("Replay");
+            return new ReplayResponse { Result = new ReplayResult { Success = true, CompletedSteps = 1 } };
+        });
+        var workflow = new RecordedWorkflow { Steps = new() {
+            new WorkflowStep { Action = "FindElements", Arguments = WorkflowCodec.Arguments(new FindElementsRequest { TypeName = "Button" }) }
+        } };
+        (await Bridge().ReplayAsync(workflow)).CompletedSteps.Should().Be(1);
+        await response;
+    }
+
+    [Fact]
+    public async Task Replay_checks_all_required_capabilities_with_one_probe()
+    {
+        using var pipe = Pipe();
+        var responses = Task.Run(async () =>
+        {
+            await Reply(pipe, envelope =>
+            {
+                envelope.type.Should().Be("GetCapabilities");
+                return new GetCapabilitiesResponse
+                {
+                    CoordinatePointerInput = true, AutomationIdTargeting = true,
+                    InputModeSwitch = true, AdvancedAutomation = true
+                };
+            });
+            pipe.Disconnect();
+            await Reply(pipe, envelope =>
+            {
+                envelope.type.Should().Be("Replay");
+                return new ReplayResponse { Result = new ReplayResult { Success = true, CompletedSteps = 4 } };
+            });
+        });
+        (await Bridge().ReplayAsync(CapabilityWorkflow())).CompletedSteps.Should().Be(4);
+        await responses;
+    }
+
+    [Theory]
+    [InlineData(false, false, false, false, "*coordinate clicks*")]
+    [InlineData(true, false, false, false, "*AutomationId targeting*")]
+    [InlineData(true, true, false, false, "*set-input-mode*")]
+    [InlineData(true, true, true, false, "*Inspector 0.19*")]
+    public async Task Replay_preserves_capability_rejection_order(bool pointer, bool automationId, bool background, bool advanced, string error)
+    {
+        using var pipe = Pipe();
+        var response = Reply(pipe, envelope =>
+        {
+            envelope.type.Should().Be("GetCapabilities");
+            return new GetCapabilitiesResponse
+            {
+                CoordinatePointerInput = pointer, AutomationIdTargeting = automationId,
+                InputModeSwitch = background, AdvancedAutomation = advanced
+            };
+        });
+        var act = () => Bridge().ReplayAsync(CapabilityWorkflow());
+        await act.Should().ThrowAsync<McpException>().WithMessage(error);
+        await response;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Missing_switch_capability_rejects_both_live_and_replay_requests(bool replay)
+    {
+        using var pipe = Pipe();
+        var response = Reply(pipe, envelope =>
+        {
+            envelope.type.Should().Be("GetCapabilities");
+            return new GetCapabilitiesResponse();
+        });
+        var command = new SetInputModeRequest { Mode = InputModes.Foreground };
+        var workflow = new RecordedWorkflow { Steps = new() {
+            new WorkflowStep { Action = command.RequestType, Arguments = WorkflowCodec.Arguments(command) } } };
+        Func<Task> act = () => replay ? (Task)Bridge().ReplayAsync(workflow) : Bridge().SetInputModeAsync(command.Mode);
+        await act.Should().ThrowAsync<McpException>().WithMessage("*set-input-mode*");
+        await response;
+    }
+
+    private static RecordedWorkflow CapabilityWorkflow() => new()
+    {
+        Steps = new()
+        {
+            new WorkflowStep
+            {
+                Action = "ClickElement", Target = new ElementSelector { TypeName = "Button", AutomationId = "save" },
+                Arguments = System.Text.Json.JsonSerializer.SerializeToElement(new { x = 10, y = 20 })
+            },
+            new WorkflowStep { Action = "SetInputMode", Arguments = WorkflowCodec.Arguments(new SetInputModeRequest { Mode = InputModes.Background }) },
+            new WorkflowStep
+            {
+                Action = "FindElements", Arguments = WorkflowCodec.Arguments(new FindElementsRequest { AutomationId = "save" })
+            },
+            new WorkflowStep
+            {
+                Action = "ControlOperation", Target = new ElementSelector { TypeName = "CheckBox", AutomationId = "enabled" },
+                Arguments = WorkflowCodec.Arguments(new ControlOperationRequest { Operation = "check", Checked = true })
+            }
+        }
+    };
+
     private static NamedPipeServerStream Pipe() => new($"wpf_inspector_{Environment.ProcessId}",
         PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
 

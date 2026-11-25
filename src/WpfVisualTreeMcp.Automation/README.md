@@ -241,3 +241,14 @@ the installed 4.8.1 runtime; the suite does not install older runtimes side by s
 Add `--gestures` on an unlocked desktop for real mouse drag and touch checks.
 For a source build, first run `scripts/Build-NativeBootstrapper.ps1`, then
 `dotnet pack src/WpfVisualTreeMcp.Automation -c Release -o artifacts/packages`.
+
+## Background input (source branch)
+
+Use `await app.SetInputModeAsync("background")` to route physical mouse and keyboard
+input across SDK, CLI and MCP calls. Switch to `"foreground"` before screen capture
+or touch, then switch back for further background work. Default click and text methods
+keep their UI Automation or property paths. Switches are recorded and replayed.
+The first action creates a target-owned binding shared with CLI and MCP callers.
+Always release it in `finally` with `await app.SetInputModeAsync("foreground")`;
+`DisposeAsync()` does not release shared background state. There is no idle timeout.
+See [input modes](../../docs/INPUT_MODES.md) for capability checks and unsupported cases.

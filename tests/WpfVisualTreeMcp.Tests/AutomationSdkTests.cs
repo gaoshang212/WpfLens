@@ -21,6 +21,20 @@ public class AutomationSdkTests
     private static WaitOptions Fast => new() { Timeout = TimeSpan.FromSeconds(1), PollInterval = TimeSpan.FromMilliseconds(5) };
 
     [Fact]
+    public async Task Sdk_switches_mode_separately_from_physical_text()
+    {
+        var bridge = new Mock<IIpcBridge>(MockBehavior.Strict);
+        bridge.Setup(b => b.ResolveElementHandleAsync("h", null, null)).ReturnsAsync("h");
+        bridge.Setup(b => b.SetTextAsync("h", "background", true)).ReturnsAsync(new SetTextResult());
+        bridge.Setup(b => b.SetInputModeAsync("background")).ReturnsAsync(new WpfVisualTreeMcp.Shared.Ipc.SetInputModeResponse { Mode = "background" });
+        await using var app = App(bridge);
+        await app.SetInputModeAsync("background");
+        await app.ByHandle("h").WithActionOptions(new ActionOptions { AutoWait = false })
+            .SetTextAsync("background", physical: true);
+        bridge.VerifyAll();
+    }
+
+    [Fact]
     public async Task Exact_wait_retries_missing_elements_and_recreated_controls()
     {
         var bridge = new Mock<IIpcBridge>(MockBehavior.Strict);

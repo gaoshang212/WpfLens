@@ -26,6 +26,7 @@ public class GetCapabilitiesRequest : IpcRequest
 
 public class GetCapabilitiesResponse : IpcResponse
 {
+    public bool InputModeSwitch { get; set; }
     public bool CoordinatePointerInput { get; set; }
     public bool AutomationIdTargeting { get; set; }
     public bool AutomationIdOptionalResolution { get; set; }

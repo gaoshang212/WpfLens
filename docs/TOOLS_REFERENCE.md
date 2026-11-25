@@ -2,6 +2,27 @@
 
 Complete reference for all MCP tools provided by WpfVisualTreeMcp.
 
+## Persistent background input
+
+`wpf_set_input_mode(mode="background")` or `set-input-mode --pid <id> --mode background`
+routes subsequent physical mouse and keyboard actions to the background for that target process.
+Default click and set-text retain their UI Automation or property behavior.
+All callers of the same Inspector share its mode and binding.
+Switch to `foreground` before touch or screen capture, including auto capture that selects screen.
+
+**Release the target window's mouse and keyboard when the workflow ends.** If you used
+background input, call `wpf_set_input_mode(mode="foreground")` on the same target after
+the last action and check, even if the workflow failed or was cancelled. Confirm that
+the response reports `mode="foreground"`. The binding persists across MCP disconnects
+and has no idle timeout. If disconnected, reattach to the same running PID and retry
+the foreground call. Report any unresolved cleanup error.
+
+Read [input modes](INPUT_MODES.md) before background workflows for window limits,
+cleanup, recording and unsupported touch/popup/cross-window behavior.
+Successful switches are recorded as `SetInputMode` steps in the existing workflow format.
+Replay checks the Inspector's mode-switch capability when the workflow contains this action.
+Screenshots are omitted.
+
 ## Aggregate diagnostics
 
 `wpf_report(root_handle?, max_elements=500, max_depth=25, max_findings=100)`

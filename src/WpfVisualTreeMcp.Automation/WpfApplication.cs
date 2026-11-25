@@ -141,6 +141,8 @@ public sealed partial class WpfApplication : IAsyncDisposable
         RunAsync(b => b.ExportTreeAsync(null, format), cancellationToken);
     public Task<SendKeysResult> SendKeysAsync(string keys, CancellationToken cancellationToken = default) =>
         RunAsync(b => b.SendKeysAsync(null, keys), cancellationToken);
+    public Task SetInputModeAsync(string mode, CancellationToken cancellationToken = default) =>
+        RunAsync(b => b.SetInputModeAsync(mode), cancellationToken);
     public Task<RevertPropertyResult> RevertPropertiesAsync(bool all = false, string? propertyName = null, CancellationToken cancellationToken = default) =>
         RunAsync(b => b.RevertPropertyAsync(all, null, propertyName), cancellationToken);
     public Task<RecordingState> StartRecordingAsync(string? name = null, CancellationToken cancellationToken = default) =>
