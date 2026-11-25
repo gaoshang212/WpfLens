@@ -1,14 +1,34 @@
 <Project>
+  <Target Name="ResolveInputAutomationPackage">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\WpfVisualTreeMcp.Inspector.csproj"
+             Targets="GetInputAutomationPackagePath"
+             Properties="Configuration=$(Configuration);TargetFramework=net472"
+             RemoveProperties="RuntimeIdentifier;SelfContained">
+      <Output TaskParameter="TargetOutputs" ItemName="_InputAutomationPackage" />
+    </MSBuild>
+    <PropertyGroup>
+      <_InputAutomationPackageRoot>@(_InputAutomationPackage)</_InputAutomationPackageRoot>
+    </PropertyGroup>
+    <Error Condition="'$(_InputAutomationPackageRoot)' == ''"
+           Text="Gosf.Input.Automation package path is unavailable. Restore the Inspector project before collecting the injection payload." />
+  </Target>
+
   <!-- Resolve project references before expanding globs: a clean build must
        include the same payload as an incremental build. These files are also
        consumed by dotnet-tool packing through ComputeFilesToPublish. -->
   <Target Name="CollectInjectionPayload"
           BeforeTargets="GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems"
-          DependsOnTargets="ResolveProjectReferences">
+          DependsOnTargets="ResolveProjectReferences;ResolveInputAutomationPackage">
     <ItemGroup>
       <_FrameworkPayload Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\*.dll" />
-      <_CoreClrPayload Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\*.dll" />
+      <!-- Ignore old flattened native DLLs left by pre-migration incremental builds. -->
+      <_CoreClrPayload Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\*.dll"
+                       Exclude="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\Gosf.Input.Automation.Native.*.dll" />
+      <_CoreClrInputX64 Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\runtimes\win-x64\native\*.dll" />
+      <_CoreClrInputX86 Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\runtimes\win-x86\native\*.dll" />
       <_CoreClrPayload Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\WpfVisualTreeMcp.Inspector.coreclr.runtimeconfig.json" />
+      <_FrameworkInputNative Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\native\**\*.dll" />
+      <_InputLicenses Include="$(_InputAutomationPackageRoot)\LICENSE;$(_InputAutomationPackageRoot)\THIRD-PARTY-NOTICES.md;$(_InputAutomationPackageRoot)\licenses\*.txt" />
       <_HelperPayload Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.InjectorHelper\bin\$(Configuration)\net8.0\win-x86\WpfInjectorHelper.*"
                       Exclude="**\*.pdb" />
       <_HelperPayload Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.InjectorHelper\bin\$(Configuration)\net8.0\win-x86\WpfVisualTreeMcp.Injector.dll" />
@@ -16,6 +36,11 @@
       <ContentWithTargetPath Include="@(_FrameworkPayload)" TargetPath="native\x86\%(Filename)%(Extension)" />
       <ContentWithTargetPath Include="@(_CoreClrPayload)" TargetPath="native\x64\coreclr\%(Filename)%(Extension)" />
       <ContentWithTargetPath Include="@(_CoreClrPayload)" TargetPath="native\x86\coreclr\%(Filename)%(Extension)" />
+      <ContentWithTargetPath Include="@(_CoreClrInputX64)" TargetPath="native\x64\coreclr\%(Filename)%(Extension)" />
+      <ContentWithTargetPath Include="@(_CoreClrInputX86)" TargetPath="native\x86\coreclr\%(Filename)%(Extension)" />
+      <ContentWithTargetPath Include="@(_FrameworkInputNative)" TargetPath="native\x64\native\%(RecursiveDir)%(Filename)%(Extension)" />
+      <ContentWithTargetPath Include="@(_FrameworkInputNative)" TargetPath="native\x86\native\%(RecursiveDir)%(Filename)%(Extension)" />
+      <ContentWithTargetPath Include="@(_InputLicenses)" TargetPath="native\input-automation-licenses\%(Filename)%(Extension)" />
       <ContentWithTargetPath Include="@(_HelperPayload)" TargetPath="native\x86\%(Filename)%(Extension)" />
       <ContentWithTargetPath Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Bootstrapper\build\x64\$(Configuration)\WpfInspectorBootstrapper.dll"
                              Condition="Exists('$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Bootstrapper\build\x64\$(Configuration)\WpfInspectorBootstrapper.dll')"
@@ -33,12 +58,21 @@
   <!-- Applies even when publishing/packing without a build. Missing native files must never
        silently produce a release that cannot inject. Ordinary managed builds
        can still be used for self-hosted development without the C++ toolchain. -->
-  <Target Name="ValidateInjectionPayload" BeforeTargets="ComputeFilesToPublish;GenerateNuspec">
+  <Target Name="ValidateInjectionPayload" BeforeTargets="ComputeFilesToPublish;GenerateNuspec" DependsOnTargets="ResolveInputAutomationPackage">
     <ItemGroup>
       <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Bootstrapper\build\x64\$(Configuration)\WpfInspectorBootstrapper.dll" />
       <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Bootstrapper\build\Win32\$(Configuration)\WpfInspectorBootstrapper.dll" />
       <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\WpfVisualTreeMcp.Inspector.dll" />
       <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\WpfVisualTreeMcp.Inspector.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\Gosf.Input.Automation.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\Gosf.Input.Automation.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\runtimes\win-x64\native\Gosf.Input.Automation.Native.x64.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net8.0-windows\runtimes\win-x86\native\Gosf.Input.Automation.Native.x86.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\native\x64\Gosf.Input.Automation.Native.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\native\x86\Gosf.Input.Automation.Native.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\native\x64\Gosf.Input.Automation.Native.x64.dll" />
+      <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.Inspector\bin\$(Configuration)\net472\native\x86\Gosf.Input.Automation.Native.x86.dll" />
+      <_RequiredInjectionFile Include="$(_InputAutomationPackageRoot)\LICENSE;$(_InputAutomationPackageRoot)\THIRD-PARTY-NOTICES.md" />
       <_RequiredInjectionFile Include="$(MSBuildThisFileDirectory)..\WpfVisualTreeMcp.InjectorHelper\bin\$(Configuration)\net8.0\win-x86\WpfInjectorHelper.exe" />
     </ItemGroup>
     <Error Condition="!Exists('%(_RequiredInjectionFile.Identity)')"

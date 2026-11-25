@@ -56,6 +56,31 @@ Stop recording, inspect `wpf_get_recording`, then use `wpf_export_test(format="x
 
 Recordings live in the inspected process and vanish when it exits. Export before clearing; input values are plain text. Selectors use exact identities and reject missing/ambiguous controls. Do not replace a failed selector with a stale handle or arbitrary first match. Version 1 is linear, limited to 100 steps/512 KiB; replay has a maximum 120-second deadline and stops at the first failure without undoing earlier actions. Physical input still requires the interactive desktop and app gesture support. Inspect explicit assertions and application state when replaying; input delivery alone does not prove the intended result.
 
+## Background input
+
+When the live schema exposes `wpf_set_input_mode`, call it with `mode="background"`
+to route physical mouse and keyboard input for the attached process. Use
+`mode="foreground"` before screen capture, including auto capture that selects screen,
+or touch. Switch back to background only if more background actions are needed. CLI uses
+`set-input-mode --pid <id> --mode foreground|background`. Ordinary click and set-text
+keep their UI Automation or property behavior. Check the live schema or CLI help for available commands.
+
+**Release the target window's mouse and keyboard before handing control back to the user.**
+After the last action and verification, call `wpf_set_input_mode(mode="foreground")`
+on the same target. Run this cleanup even if an action or replay fails or is cancelled.
+Confirm that the response reports `mode="foreground"`. If disconnected, reattach to the
+same running PID and retry. If release still fails, report the error. The binding is shared
+across callers and persists across queries, idle time and disconnects.
+For CLI cleanup, use `set-input-mode --pid <id> --mode foreground`.
+
+Use one visible, non-minimized WPF HWND on the Inspector UI thread. End the binding
+before targeting another HWND or switching to physical input. Background touch,
+native hosts and separate popup HWNDs are not implemented; cross-window background
+drags and background OLE DragDrop.DoDragDrop are not implemented. OLE attempts are cancelled and the triggering input fails. Report that limit without falling back to foreground
+input. The target's manual input is restricted while bound; other apps remain usable.
+Each successful switch adds a `SetInputMode` step to the workflow, even if no input
+follows. All recordings use `schemaVersion` 1. Screen captures are omitted.
+
 ## Connection failures
 
 This plugin runs locally on Windows and starts the latest stable NuGet package through `dotnet dnx`. It requires .NET 10 SDK version 10.0.300 or newer within .NET 10, and the .NET 8 runtime. Each MCP start checks nuget.org for the latest stable package, bypassing HTTP metadata caches; downloaded packages are reused. Restart the MCP server or Codex to pick up a new release. Attaching to x86 .NET apps also requires the x86 .NET 8 runtime. If the MCP tools are unavailable, report the startup failure and check those prerequisites before diagnosing the target app.

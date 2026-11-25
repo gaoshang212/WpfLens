@@ -19,9 +19,14 @@ public partial class InspectorService
         Task.Run(() => Application.Current.Dispatcher.Invoke(callback, priority,
             cancellationToken, TimeSpan.FromSeconds(10)), cancellationToken);
 
-    private Task<IpcResponse> ExecuteOperationAsync(string type, JsonElement data, CancellationToken token)
+    private Task<IpcResponse> ExecuteOperationAsync(string type, JsonElement data, CancellationToken token, bool useSessionMode = true)
     {
         token.ThrowIfCancellationRequested();
+        if (type == "SetInputMode") return SetInputModeAsync(IpcSerializer.DeserializeRequestData<SetInputModeRequest>(data)!);
+        IpcRequest? parsedRequest = null;
+        if (useSessionMode && _background.TryParseBackgroundRequest(type, data, out parsedRequest))
+            return ExecuteBackgroundAsync(parsedRequest!, token);
+        GuardForegroundOperation(type, data, parsedRequest);
         return type switch
         {
             "Drag" => HandleDragAsync(data, token),
@@ -72,7 +77,7 @@ public partial class InspectorService
     private IpcResponse HandleRecord(JsonElement data)
     {
         var request = IpcSerializer.DeserializeRequestData<RecordRequest>(data)!;
-        return new RecordResponse { RequestId = request.RequestId, State = _recorder.Control(request.Action, request.Name) };
+        return new RecordResponse { RequestId = request.RequestId, State = _recorder.Control(request.Action, request.Name, _background.Mode) };
     }
 
     private IpcResponse HandleAssertElement(JsonElement data)
@@ -102,44 +107,70 @@ public partial class InspectorService
         if (_recorder.Active) throw new InvalidOperationException("Stop recording before replaying a workflow.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_inputShutdown.Token);
         timeout.CancelAfter(request.TimeoutMs);
+        var result = await ReplayStepsAsync(request.Workflow, timeout.Token).ConfigureAwait(false);
+        return new ReplayResponse { RequestId = request.RequestId, Result = result };
+    }
+    private async Task<ReplayResult> ReplayStepsAsync(RecordedWorkflow workflow, CancellationToken token)
+    {
         var result = new ReplayResult();
         try
         {
-            foreach (var step in request.Workflow.Steps)
+            // A recording started in background begins with an explicit switch.
+            bool usesModeSwitch = workflow.HasInputModeSwitch();
+            if (usesModeSwitch && workflow.Steps[0].Action != "SetInputMode")
             {
-                timeout.Token.ThrowIfCancellationRequested();
-                var operation = WorkflowCodec.ReadRequest(step.Action, step.Arguments);
-                await OnDispatcher(() =>
-                {
-                    string? Resolve(ElementSelector? selector) => selector == null ? null :
-                        _treeWalker.GetOrCreateHandle(_recorder.Selectors.Resolve(selector)!);
-                    WorkflowCodec.BindHandles(operation, Resolve(step.Target), Resolve(step.Destination), Resolve(step.Root));
-                    return true;
-                }, timeout.Token).ConfigureAwait(false);
-                using var document = JsonDocument.Parse(IpcSerializer.Serialize<object>(operation));
-                var response = await ExecuteOperationAsync(operation.RequestType, document.RootElement, timeout.Token).ConfigureAwait(false);
-                while (response is ControlOperationResponse control && control.NotReady)
-                {
-                    await Task.Delay(100, timeout.Token).ConfigureAwait(false);
-                    response = await ExecuteOperationAsync(operation.RequestType, document.RootElement, timeout.Token).ConfigureAwait(false);
-                }
-                if (!response.Success) throw new InvalidOperationException(response.Error ?? "Step failed.");
-                if (response is WaitForElementResponse wait && !wait.Matched)
-                    throw new InvalidOperationException("Recorded wait condition was not satisfied before its timeout.");
-                // UI Automation Invoke and OS input can enqueue work below
-                // Normal priority. Let input, binding and layout callbacks run
-                // before resolving/asserting the next step. App async work still
-                // needs a recorded explicit wait.
-                await OnDispatcher(() => true, timeout.Token, DispatcherPriority.Background).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                await SetInputModeAsync(new SetInputModeRequest { Mode = InputModes.Foreground }).ConfigureAwait(false);
+            }
+            foreach (var step in workflow.Steps)
+            {
+                await ReplayStepAsync(step, usesModeSwitch, token).ConfigureAwait(false);
                 result.CompletedSteps++;
             }
             result.Success = true;
         }
-        catch (Exception ex)
+        catch (Exception error)
         {
             result.FailedStep = result.CompletedSteps + 1;
-            result.Error = ex is OperationCanceledException ? "Replay deadline expired or Inspector is shutting down." : ex.Message;
+            result.Error = error is OperationCanceledException
+                ? "Replay deadline expired or Inspector is shutting down." : error.Message;
+            try { await ReleaseBackgroundAsync().ConfigureAwait(false); }
+            catch (Exception cleanup) { result.Error += " Background cleanup failed: " + cleanup.Message; }
         }
-        return new ReplayResponse { RequestId = request.RequestId, Result = result };
+        return result;
     }
+
+    private async Task ReplayStepAsync(WorkflowStep step, bool usesModeSwitch, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var operation = WorkflowCodec.ReadRequest(step.Action, step.Arguments);
+        await OnDispatcher(() => BindReplayTargets(operation, step), token).ConfigureAwait(false);
+        using var document = JsonDocument.Parse(IpcSerializer.Serialize<object>(operation));
+        var response = await ExecuteReplayOperationAsync(operation.RequestType, document.RootElement, usesModeSwitch, token).ConfigureAwait(false);
+        if (!response.Success) throw new InvalidOperationException(response.Error ?? "Step failed.");
+        if (response is WaitForElementResponse wait && !wait.Matched)
+            throw new InvalidOperationException("Recorded wait condition was not satisfied before its timeout.");
+        // Drain queued input/layout callbacks before resolving the next selector.
+        await OnDispatcher(() => true, token, DispatcherPriority.Background).ConfigureAwait(false);
+    }
+
+    private bool BindReplayTargets(IpcRequest operation, WorkflowStep step)
+    {
+        string? Resolve(ElementSelector? selector) => selector == null ? null :
+            _treeWalker.GetOrCreateHandle(_recorder.Selectors.Resolve(selector)!);
+        WorkflowCodec.BindHandles(operation, Resolve(step.Target), Resolve(step.Destination), Resolve(step.Root));
+        return true;
+    }
+
+    private async Task<IpcResponse> ExecuteReplayOperationAsync(string type, JsonElement data, bool useSessionMode, CancellationToken token)
+    {
+        var response = await ExecuteOperationAsync(type, data, token, useSessionMode).ConfigureAwait(false);
+        while (response is ControlOperationResponse control && control.NotReady)
+        {
+            await Task.Delay(100, token).ConfigureAwait(false);
+            response = await ExecuteOperationAsync(type, data, token, useSessionMode).ConfigureAwait(false);
+        }
+        return response;
+    }
+
 }

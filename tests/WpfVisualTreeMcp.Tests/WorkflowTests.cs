@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
+using WpfVisualTreeMcp.Automation.Infrastructure;
 using WpfVisualTreeMcp.Server;
 using WpfVisualTreeMcp.Shared;
 using WpfVisualTreeMcp.Shared.Ipc;
@@ -11,6 +12,39 @@ namespace WpfVisualTreeMcp.Tests;
 public class WorkflowTests
 {
     private static ElementSelector Selector(string name) => new() { TypeName = "System.Windows.Controls.Border", Name = name };
+
+    [Theory]
+    [InlineData("ClickElement", "{}", false)]
+    [InlineData("ClickElement", "{\"physical\":true}", true)]
+    [InlineData("ClickElement", "{\"clickType\":\"right\"}", true)]
+    [InlineData("ClickElement", "{\"x\":2,\"y\":3}", true)]
+    [InlineData("SetText", "{\"text\":\"hello\"}", false)]
+    [InlineData("SetText", "{\"text\":\"hello\",\"physical\":true}", true)]
+    [InlineData("SendKeys", "{\"keys\":\"Enter\"}", true)]
+    [InlineData("MousePointer", "{\"options\":{\"action\":\"move\"}}", true)]
+    [InlineData("Drag", "{\"options\":{\"deltaX\":5}}", true)]
+    [InlineData("TouchGesture", "{\"options\":{\"gesture\":\"tap\"}}", true)]
+    public void Replay_grants_foreground_permission_only_for_input_in_a_foreground_step(
+        string action, string arguments, bool needsForeground)
+    {
+        using var json = JsonDocument.Parse(arguments);
+        var input = new WorkflowStep { Action = action, Target = Selector("Target"), Arguments = json.RootElement.Clone() };
+        WorkflowStep Switch(string mode) => new()
+        {
+            Action = "SetInputMode", Arguments = WorkflowCodec.Arguments(new SetInputModeRequest { Mode = mode })
+        };
+        bool NeedsGrant(params WorkflowStep[] steps) => InspectorBridge.NeedsForegroundPermission(
+            new ReplayRequest { Workflow = new RecordedWorkflow { Steps = steps.ToList() } });
+
+        var background = Switch(InputModes.Background);
+        var foreground = Switch(InputModes.Foreground);
+        var shortcut = new WorkflowStep { Action = "SendKeys", Target = Selector("Target"),
+            Arguments = WorkflowCodec.Arguments(new SendKeysRequest { Keys = "Enter" }) };
+        NeedsGrant(input).Should().Be(needsForeground);
+        NeedsGrant(input, background).Should().Be(needsForeground);
+        NeedsGrant(background, input, foreground).Should().BeFalse();
+        NeedsGrant(background, shortcut, foreground, input).Should().Be(needsForeground);
+    }
 
     [Fact]
     public void Drag_recording_preserves_local_parameters_and_replaces_both_session_handles()

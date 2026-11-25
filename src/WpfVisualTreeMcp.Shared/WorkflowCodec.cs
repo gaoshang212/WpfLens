@@ -12,7 +12,7 @@ public static class WorkflowCodec
     public const int MaxJsonLength = 512 * 1024;
     public static bool IsRecordable(string action) => action is "ClickElement" or "SetText" or "SelectItem" or "SendKeys"
         or "Drag" or "TouchGesture" or "MousePointer" or "SetProperty" or "RevertProperty" or "FindElements" or "FindElementsDeep"
-        or "WaitForElement" or "AssertElement" or "ControlOperation";
+        or "WaitForElement" or "AssertElement" or "ControlOperation" or "SetInputMode";
 
     public static void Validate(RecordedWorkflow workflow)
     {
@@ -69,6 +69,7 @@ public static class WorkflowCodec
             throw new ArgumentException("Unsupported workflow action or invalid arguments: " + action);
         return action switch
         {
+            "SetInputMode" => IpcSerializer.DeserializeRequestData<SetInputModeRequest>(arguments)!,
             "ClickElement" => IpcSerializer.DeserializeRequestData<ClickElementRequest>(arguments)!,
             "SetText" => IpcSerializer.DeserializeRequestData<SetTextRequest>(arguments)!,
             "SelectItem" => IpcSerializer.DeserializeRequestData<SelectItemRequest>(arguments)!,
@@ -148,6 +149,12 @@ public static class WorkflowCodec
 
     public static void ValidateRequest(IpcRequest request)
     {
+        ValidateAutomationIdFilter(request);
+        ValidateOperationArguments(request);
+    }
+
+    private static void ValidateAutomationIdFilter(IpcRequest request)
+    {
         var automationId = request switch
         {
             FindElementsRequest r => r.AutomationId,
@@ -157,8 +164,13 @@ public static class WorkflowCodec
         };
         if (automationId != null && (string.IsNullOrWhiteSpace(automationId) || automationId.Length > 2048))
             throw new ArgumentException("automation_id must contain 1-2048 characters and cannot be blank.");
+    }
+
+    private static void ValidateOperationArguments(IpcRequest request)
+    {
         switch (request)
         {
+            case SetInputModeRequest r: InputModes.Validate(r.Mode); break;
             case ControlOperationRequest r: r.Validate(); break;
             case DragRequest r: (r.Options ?? throw new ArgumentException("Drag options required.")).Validate(); break;
             case TouchGestureRequest r: (r.Options ?? throw new ArgumentException("Touch options required.")).Validate(); break;

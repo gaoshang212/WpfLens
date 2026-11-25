@@ -25,7 +25,7 @@ namespace WpfVisualTreeMcp.Inspector;
 ///
 /// All methods must be called on the UI dispatcher thread.
 /// </summary>
-internal sealed class ControlInteractor
+internal sealed partial class ControlInteractor
 {
     /// <summary>Describes how an interaction was carried out.</summary>
     public readonly struct InteractionOutcome

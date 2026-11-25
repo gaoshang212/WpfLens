@@ -4,12 +4,8 @@ namespace WpfVisualTreeMcp.Automation.Infrastructure;
 
 public partial class InspectorBridge
 {
-    private async Task EnsureAdvancedAutomationAsync(bool subscriptions = false)
-    {
-        var capabilities = await SendRequestAsync<GetCapabilitiesRequest, GetCapabilitiesResponse>(EnsureConnected().ProcessId, new());
-        if (!capabilities.Success || !(subscriptions ? capabilities.PropertySubscriptions : capabilities.AdvancedAutomation))
-            throw CreateException("This operation requires Inspector 0.19 or later. Restart the target application and attach with the current SDK.");
-    }
+    private Task EnsureAdvancedAutomationAsync(bool subscriptions = false) =>
+        EnsureCapabilitiesAsync(EnsureConnected().ProcessId, advanced: !subscriptions, subscriptions: subscriptions);
 
     public async Task<ControlOperationResponse> ControlOperationAsync(ControlOperationRequest request)
     {

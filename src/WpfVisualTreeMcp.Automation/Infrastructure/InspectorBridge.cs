@@ -60,13 +60,12 @@ public partial class InspectorBridge : IIpcBridge
         try { Shared.WorkflowCodec.Validate(workflow); }
         catch (ArgumentException ex) { throw CreateException(ex.Message); }
         if (timeoutMs is < 1000 or > 120000) throw CreateException("Replay timeout must be between 1000 and 120000 ms.");
-        if (workflow.Steps.Any(step => step.Action == "MousePointer" ||
-            step.Action == "ClickElement" && (step.Arguments.TryGetProperty("x", out _) || step.Arguments.TryGetProperty("y", out _))))
-            await EnsurePointerSupportAsync(EnsureConnected().ProcessId);
-        if (workflow.Steps.Any(step => step.Arguments.TryGetProperty("automationId", out var id) && id.ValueKind != JsonValueKind.Null))
-            await EnsureAutomationIdSupportAsync(EnsureConnected().ProcessId);
-        if (workflow.Steps.Any(step => step.Action == "ControlOperation"))
-            await EnsureAdvancedAutomationAsync();
+        await EnsureCapabilitiesAsync(EnsureConnected().ProcessId,
+            pointer: workflow.Steps.Any(step => step.Action == "MousePointer" ||
+                step.Action == "ClickElement" && (step.Arguments.TryGetProperty("x", out _) || step.Arguments.TryGetProperty("y", out _))),
+            automationId: workflow.Steps.Any(step => step.Arguments.TryGetProperty("automationId", out var id) && id.ValueKind != JsonValueKind.Null),
+            modeSwitch: workflow.HasInputModeSwitch(),
+            advanced: workflow.Steps.Any(step => step.Action == "ControlOperation"));
         var response = await SendRequestAsync<ReplayRequest, ReplayResponse>(EnsureConnected().ProcessId,
             new ReplayRequest { Workflow = workflow, TimeoutMs = timeoutMs });
         if (!response.Success || response.Result == null) throw CreateException(response.Error ?? "Replay unavailable.");
@@ -607,7 +606,6 @@ public partial class InspectorBridge : IIpcBridge
     public async Task<ClickResult> ClickElementAsync(string elementHandle, bool physical, string? clickType = null, double? x = null, double? y = null)
     {
         var session = EnsureConnected();
-        if (x.HasValue || y.HasValue) await EnsurePointerSupportAsync(session.ProcessId);
 
         var request = new ClickElementRequest
         {
@@ -616,7 +614,7 @@ public partial class InspectorBridge : IIpcBridge
             ClickType = clickType, X = x, Y = y
         };
 
-        var response = await SendRequestAsync<ClickElementRequest, ClickElementResponse>(
+        var response = await SendInputRequestAsync<ClickElementRequest, ClickElementResponse>(
             session.ProcessId, request);
 
         if (!response.Success)
@@ -646,7 +644,7 @@ public partial class InspectorBridge : IIpcBridge
     {
         options.Validate();
         var session = EnsureConnected();
-        var response = await SendRequestAsync<MousePointerRequest, MousePointerResponse>(
+        var response = await SendInputRequestAsync<MousePointerRequest, MousePointerResponse>(
             session.ProcessId, new MousePointerRequest { Options = options });
         if (!response.Success) throw CreateException(response.Error ?? "Failed to send pointer input.");
         return response.Result ?? throw CreateException("Inspector returned no pointer result. Update and reload the Inspector.");
@@ -691,31 +689,31 @@ public partial class InspectorBridge : IIpcBridge
         if (automationId == null) return;
         if (string.IsNullOrWhiteSpace(automationId) || automationId.Length > 2048)
             throw CreateException("automation_id must contain 1-2048 characters and cannot be blank.");
-        await EnsureAutomationIdSupportAsync(processId);
+        await EnsureCapabilitiesAsync(processId, automationId: true);
     }
 
-    private async Task EnsureAutomationIdSupportAsync(int processId)
+    private async Task EnsureCapabilitiesAsync(int processId, bool pointer = false, bool automationId = false,
+        bool advanced = false, bool subscriptions = false, bool modeSwitch = false)
     {
-        // Old Inspectors ignore unknown filters, which could select an unrelated control.
-        var response = await SendRequestAsync<GetCapabilitiesRequest, GetCapabilitiesResponse>(processId, new GetCapabilitiesRequest());
-        if (!response.Success || !response.AutomationIdTargeting)
-            throw CreateException("The attached app has an older Inspector without AutomationId targeting. Save your work, restart the app, and reattach using the updated server.");
-    }
-
-    private async Task EnsurePointerSupportAsync(int processId)
-    {
-        // Older Inspectors ignore unknown JSON fields. Without this read-only
-        // handshake a coordinate click could silently click the element center.
-        var response = await SendRequestAsync<GetCapabilitiesRequest, GetCapabilitiesResponse>(processId, new GetCapabilitiesRequest());
-        if (!response.Success || !response.CoordinatePointerInput)
+        if (!pointer && !automationId && !advanced && !subscriptions && !modeSwitch) return;
+        // 旧 Inspector 会忽略新字段，输入前必须确认所需能力。
+        var response = await SendRequestAsync<GetCapabilitiesRequest, GetCapabilitiesResponse>(processId, new());
+        if (pointer && (!response.Success || !response.CoordinatePointerInput))
             throw CreateException("The attached app still has an older Inspector. Save your work, restart the app, and reattach using the updated server before sending coordinate clicks or replaying pointer workflows.");
+        if (automationId && (!response.Success || !response.AutomationIdTargeting))
+            throw CreateException("The attached app has an older Inspector without AutomationId targeting. Save your work, restart the app, and reattach using the updated server.");
+        if (modeSwitch && (!response.Success || !response.InputModeSwitch))
+            throw CreateException("This Inspector does not support set-input-mode. Restart the app and reattach with the updated package.");
+        if (advanced && (!response.Success || !response.AdvancedAutomation)
+            || subscriptions && (!response.Success || !response.PropertySubscriptions))
+            throw CreateException("This operation requires Inspector 0.19 or later. Restart the target application and attach with the current SDK.");
     }
 
     public async Task<DragResult> DragAsync(DragOptions options)
     {
         options.Validate();
         var session = EnsureConnected();
-        var response = await SendRequestAsync<DragRequest, DragResponse>(
+        var response = await SendInputRequestAsync<DragRequest, DragResponse>(
             session.ProcessId, new DragRequest { Options = options });
         if (!response.Success)
             throw CreateException(response.Error ?? "Failed to drag element");
@@ -760,7 +758,7 @@ public partial class InspectorBridge : IIpcBridge
             Physical = physical
         };
 
-        var response = await SendRequestAsync<SetTextRequest, SetTextResponse>(
+        var response = await SendInputRequestAsync<SetTextRequest, SetTextResponse>(
             session.ProcessId, request);
 
         if (!response.Success)
@@ -786,7 +784,7 @@ public partial class InspectorBridge : IIpcBridge
             Keys = keys
         };
 
-        var response = await SendRequestAsync<SendKeysRequest, SendKeysResponse>(
+        var response = await SendInputRequestAsync<SendKeysRequest, SendKeysResponse>(
             session.ProcessId, request);
 
         if (!response.Success)
@@ -803,91 +801,60 @@ public partial class InspectorBridge : IIpcBridge
     }
 
     private async Task<TResponse> SendRequestAsync<TRequest, TResponse>(int processId, TRequest request)
-        where TRequest : IpcRequest
-        where TResponse : IpcResponse, new()
+        where TRequest : IpcRequest where TResponse : IpcResponse, new()
     {
+        var processError = GetProcessError(processId);
+        if (processError != null) return new TResponse { Success = false, Error = processError };
         var pipeName = $"wpf_inspector_{processId}";
+        _logger.LogDebug("Sending {RequestType} request to pipe {PipeName}", request.RequestType, pipeName);
+        if (OperatingSystem.IsWindows() && NeedsForegroundPermission(request)) AllowSetForegroundWindow((uint)processId);
+        try { return await ExchangeRequestAsync<TRequest, TResponse>(pipeName, request).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (_cancellation.Value.IsCancellationRequested) { throw; }
+        catch (Exception error) { return DescribeIpcFailure<TResponse>(processId, error); }
+    }
 
-        // Check if the target process still exists
+    private string? GetProcessError(int processId)
+    {
         try
         {
-            var process = System.Diagnostics.Process.GetProcessById(processId);
-            if (process.HasExited)
-            {
-                var errorMsg = $"Process {processId} has exited. Use wpf_list_processes() to see available WPF applications, then wpf_attach(process_id=<new_pid>) to connect.";
-                _logger.LogWarning(errorMsg);
-                return new TResponse { Success = false, Error = errorMsg };
-            }
+            using var process = System.Diagnostics.Process.GetProcessById(processId);
+            if (!process.HasExited) return null;
+            return $"Process {processId} has exited. Use wpf_list_processes() to see available WPF applications, then wpf_attach(process_id=<new_pid>) to connect.";
         }
         catch (ArgumentException)
         {
-            // Process doesn't exist
-            var errorMsg = $"Process {processId} no longer exists. The application may have been closed or restarted. Use wpf_list_processes() to see available WPF applications, then wpf_attach(process_id=<new_pid>) to connect to the current instance.";
-            _logger.LogWarning(errorMsg);
-            return new TResponse { Success = false, Error = errorMsg };
+            return $"Process {processId} no longer exists. The application may have been closed or restarted. Use wpf_list_processes() to see available WPF applications, then wpf_attach(process_id=<new_pid>) to connect to the current instance.";
         }
+    }
 
-        _logger.LogDebug("Sending {RequestType} request to pipe {PipeName}",
-            request.RequestType, pipeName);
+    private async Task<TResponse> ExchangeRequestAsync<TRequest, TResponse>(string pipeName, TRequest request)
+        where TRequest : IpcRequest where TResponse : IpcResponse, new()
+    {
+        using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        using var connect = CancellationTokenSource.CreateLinkedTokenSource(_cancellation.Value);
+        connect.CancelAfter(_connectionTimeout);
+        await pipe.ConnectAsync(connect.Token).ConfigureAwait(false);
+        using var reader = new StreamReader(pipe, Encoding.UTF8, leaveOpen: true);
+        await using var writer = new StreamWriter(pipe, Encoding.UTF8, leaveOpen: true) { AutoFlush = true };
+        await writer.WriteLineAsync(IpcSerializer.SerializeRequest(request)).ConfigureAwait(false);
+        using var read = CancellationTokenSource.CreateLinkedTokenSource(_cancellation.Value);
+        read.CancelAfter(request is ReplayRequest replay ? TimeSpan.FromMilliseconds(replay.TimeoutMs + 15000) : _requestTimeout);
+        var json = await reader.ReadLineAsync(read.Token).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(json)) return new TResponse { Success = false, Error = "Empty response from inspector" };
+        return IpcSerializer.DeserializeResponse<TResponse>(json) ?? new TResponse { Success = false, Error = "Failed to parse response" };
+    }
 
-        // The CLI/MCP host may hold Windows foreground permission while the
-        // inspected app has been idle. Delegate that permission before asking
-        // its Dispatcher to activate. Input guards still verify the actual owner.
-        if (OperatingSystem.IsWindows() && request is ReplayRequest or DragRequest or TouchGestureRequest or MousePointerRequest or
-            SendKeysRequest or ClickElementRequest { Physical: true } or ClickElementRequest { X: not null } or
-            ClickElementRequest { ClickType: "double" or "right" } or SetTextRequest { Physical: true } or
-            CaptureScreenshotRequest { Mode: "screen" or "auto" })
-            AllowSetForegroundWindow((uint)processId);
-
-        try
+    private TResponse DescribeIpcFailure<TResponse>(int processId, Exception error) where TResponse : IpcResponse, new()
+    {
+        var message = error switch
         {
-            using var pipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut,
-                PipeOptions.Asynchronous);
-
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellation.Value);
-            cts.CancelAfter(_connectionTimeout);
-            await pipeClient.ConnectAsync(cts.Token);
-
-            using var reader = new StreamReader(pipeClient, Encoding.UTF8, leaveOpen: true);
-            await using var writer = new StreamWriter(pipeClient, Encoding.UTF8, leaveOpen: true) { AutoFlush = true };
-
-            var requestJson = IpcSerializer.SerializeRequest(request);
-            await writer.WriteLineAsync(requestJson);
-
-            using var readCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellation.Value);
-            readCts.CancelAfter(request is ReplayRequest replay
-                ? TimeSpan.FromMilliseconds(replay.TimeoutMs + 15000) : _requestTimeout);
-            var responseJson = await reader.ReadLineAsync(readCts.Token);
-
-            if (string.IsNullOrEmpty(responseJson))
-            {
-                return new TResponse { Success = false, Error = "Empty response from inspector" };
-            }
-
-            var response = IpcSerializer.DeserializeResponse<TResponse>(responseJson);
-            return response ?? new TResponse { Success = false, Error = "Failed to parse response" };
-        }
-        catch (OperationCanceledException) when (_cancellation.Value.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (TimeoutException)
-        {
-            var errorMsg = $"Connection to process {processId} timed out. The Inspector may not be loaded. Try restarting the application or use wpf_list_processes() and wpf_attach() to reconnect.";
-            _logger.LogWarning(errorMsg);
-            return new TResponse { Success = false, Error = errorMsg };
-        }
-        catch (IOException ex)
-        {
-            var errorMsg = $"Cannot connect to process {processId}: {ex.Message}. The named pipe may not exist. Use wpf_list_processes() to see available WPF applications, then wpf_attach(process_id=<new_pid>) to connect.";
-            _logger.LogWarning(ex, errorMsg);
-            return new TResponse { Success = false, Error = errorMsg };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error sending request to inspector");
-            return new TResponse { Success = false, Error = ex.Message };
-        }
+            TimeoutException => $"Connection to process {processId} timed out. The Inspector may not be loaded. Try restarting the application or use wpf_list_processes() and wpf_attach() to reconnect.",
+            IOException => $"Cannot connect to process {processId}: {error.Message}. The named pipe may not exist. Use wpf_list_processes() to see available WPF applications, then wpf_attach(process_id=<new_pid>) to connect.",
+            _ => error.Message
+        };
+        if (error is TimeoutException or IOException) _logger.LogWarning(error, "{Message}", message);
+        else _logger.LogError(error, "Unexpected error sending request to inspector");
+        return new TResponse { Success = false, Error = message };
     }
 
     private InspectionSession EnsureConnected()

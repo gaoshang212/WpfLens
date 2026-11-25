@@ -95,12 +95,14 @@ The app and SDK test project may use different frameworks. See the tested [compa
 | Diagnostics | Binding errors, DataContext, binding-path resolution, trigger explanations and aggregate reports |
 | Search and verification | Exact AutomationId targeting, text/property filters, condition waits, assertions, property watches and snapshot diffs |
 | Interaction | Click, hover, wheel, drag, touch, text, shortcuts and virtualized item selection; reversible property edits |
+| Background input | Use MCP, the CLI or the C# SDK to click, hover, scroll, drag, type or send keystrokes within a WPF window even when another window covers it. The target stays in the background and the system pointer stays in place. [Usage and supported operations](docs/INPUT_MODES.md) |
 | Capture and export | Element/window screenshots, full scrollable-content capture, XAML/JSON tree export |
 | Test workflows | Record and replay with stable selectors; export runnable xUnit tests |
 
 The MCP server and CLI expose 38 tools through a shared engine. Browse the [MCP tool index](docs/MCP_TOOLS.md), or see the [tool reference](docs/TOOLS_REFERENCE.md) for parameters and examples.
 
 - Touch requires application support; physical input needs an interactive desktop.
+- In MCP, enable background input with `wpf_set_input_mode(mode="background")`. After the final action and verification, call `wpf_set_input_mode(mode="foreground")` on the same target to release its mouse and keyboard. Run this cleanup even if the workflow fails or is cancelled. Confirm the response reports `foreground` before returning control to the user.
 - Actions and replay change application state, and full-content screenshots may temporarily scroll controls.
 - Verify results with waits and assertions; see the [verification workflow](docs/TOOLS_REFERENCE.md#verification).
 

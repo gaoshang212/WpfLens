@@ -7,6 +7,7 @@
     <AssemblyName>WpfVisualTreeMcp.Inspector</AssemblyName>
     <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <UseWPF Condition="'$(TargetFramework)' == 'net8.0-windows'">true</UseWPF>
   </PropertyGroup>
 
@@ -24,8 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Gosf.Input.Automation" Version="0.1.1" GeneratePathProperty="true" />
     <ProjectReference Include="..\WpfVisualTreeMcp.Shared\WpfVisualTreeMcp.Shared.csproj" />
     <InternalsVisibleTo Include="WpfVisualTreeMcp.IntegrationTests" />
   </ItemGroup>
 
+  <Target Name="GetInputAutomationPackagePath" Returns="$(PkgGosf_Input_Automation)" />
 </Project>

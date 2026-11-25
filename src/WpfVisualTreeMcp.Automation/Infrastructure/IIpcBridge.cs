@@ -8,6 +8,7 @@ namespace WpfVisualTreeMcp.Automation.Infrastructure;
 /// </summary>
 public interface IIpcBridge
 {
+    Task<SetInputModeResponse> SetInputModeAsync(string mode);
     Task<ControlOperationResponse> ControlOperationAsync(ControlOperationRequest request);
     Task<WindowResponse> WindowAsync(WindowRequest request);
     Task<PropertySubscription> ObservePropertyAsync(string elementHandle, string propertyName);

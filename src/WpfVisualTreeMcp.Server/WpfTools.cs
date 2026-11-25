@@ -1,3 +1,4 @@
+using WpfVisualTreeMcp.Shared.Ipc;
 using WpfVisualTreeMcp.Automation.Infrastructure;
 using System.ComponentModel;
 using System.Text.Json;
@@ -39,7 +40,11 @@ public class WpfTools
         string? automation_id = null, string? root_handle = null)
     {
         var handle = await _ipcBridge.ResolveElementHandleAsync(element_handle, automation_id, root_handle);
-        return new { success = true, actual_value = await _ipcBridge.AssertElementAsync(handle, property_name, expected_value) };
+        return new
+        {
+            success = true,
+            actual_value = await _ipcBridge.AssertElementAsync(handle, property_name, expected_value)
+        };
     }
 
     [McpServerTool]
@@ -200,7 +205,11 @@ public class WpfTools
     public async Task<object> WpfClearBindingErrors()
     {
         await _ipcBridge.ClearBindingErrorsAsync();
-        return new { success = true, message = "Binding errors cleared" };
+        return new
+        {
+            success = true,
+            message = "Binding errors cleared"
+        };
     }
 
     [McpServerTool]
@@ -278,7 +287,11 @@ public class WpfTools
         }
 
         await _ipcBridge.HighlightElementAsync(element_handle, duration_ms);
-        return new { success = true, message = "Element highlighted successfully" };
+        return new
+        {
+            success = true,
+            message = "Element highlighted successfully"
+        };
     }
 
     [McpServerTool]
@@ -348,7 +361,12 @@ public class WpfTools
     public async Task<object> WpfSnapshot(string? element_handle = null, string? label = null, int max_depth = 25)
     {
         var result = await _ipcBridge.SnapshotAsync(element_handle, label, max_depth);
-        return new { success = true, label = result.Label, element_count = result.ElementCount };
+        return new
+        {
+            success = true,
+            label = result.Label,
+            element_count = result.ElementCount
+        };
     }
 
     [McpServerTool]
@@ -443,7 +461,11 @@ public class WpfTools
     }
 
     [McpServerTool]
-    [Description("Click a UI element. Supply exactly one of element_handle or automation_id (exact, case-sensitive AutomationProperties.AutomationId; no handle lookup needed). IDs must match a unique control across all open windows, including hidden controls. Use root_handle with automation_id to scope to a window or subtree if IDs repeat. Missing or ambiguous IDs return an error without clicking. By default invokes the control's action via UI Automation (works for buttons, menu items, checkboxes, radio buttons, tabs, list items, expanders) without moving the mouse or focusing the window. Set physical=true to perform a real OS mouse click at the element's on-screen position (works on any visible element but moves the cursor and brings the window forward; auto-scrolls the element into view first). Optional paired x/y select a point in local WPF DIPs and imply physical input; omitted coordinates use the center. click_type: 'single' (default), 'double' (open items), 'right' (context menus) — double and right are always physical. After opening a context menu or dropdown, use wpf_capture_screenshot with mode='screen' to see it. STATE-CHANGING.")]
+    [Description("Set the attached process's shared mouse and keyboard delivery mode (foreground or background). Background routes physical input without activation. Default UI Automation clicks and text keep their normal behavior. Switch to foreground before screen capture or touch. After a background workflow finishes, fails or is cancelled, call this tool with mode=foreground on the same target to release its mouse and keyboard. Confirm the returned mode is foreground. Each successful switch records a SetInputMode workflow action when recording. STATE-CHANGING.")]
+    public Task<SetInputModeResponse> WpfSetInputMode(string mode) => _ipcBridge.SetInputModeAsync(mode);
+
+    [McpServerTool]
+    [Description("Click an element via UI Automation by default. physical=true, paired x/y, double/right click_type selects mouse input. Mouse delivery follows wpf_set_input_mode (initially foreground). x/y are local WPF DIPs, default center. click_type: single/double/right. Background binds across calls until switching to foreground; requires a visible, non-minimized WPF window; HwndHost and separate popup HWNDs are unsupported. Verify app state after input. STATE-CHANGING." + InputTargetDescription)]
     public async Task<object> WpfClickElement(string? element_handle = null, bool physical = false, string? click_type = null, double? x = null, double? y = null,
         string? automation_id = null, string? root_handle = null)
     {
@@ -461,16 +483,29 @@ public class WpfTools
     }
 
     [McpServerTool]
-    [Description("Move the real mouse to a visible element without clicking. Optional x/y are paired local WPF DIPs, default center. hover_ms (0-5000, default 500) waits with the UI responsive for hover/tooltip handlers. Supports native content hosted in HwndHost. Activates the target window; requires a visible unobstructed desktop. Verify tooltips with a screen screenshot. STATE-CHANGING." + InputTargetDescription)]
+    [Description("Move/hover over an element using the selected input mode. Delivery follows wpf_set_input_mode (initially foreground). Paired x/y are local WPF DIPs, default center. hover_ms: 0-5000, default 500. Background binds across calls until switching to foreground; requires a visible, non-minimized WPF window; HwndHost and separate popup HWNDs are unsupported. STATE-CHANGING." + InputTargetDescription)]
     public Task<MousePointerResult> WpfMoveMouse(string? element_handle = null, double? x = null, double? y = null, int hover_ms = 500,
         string? automation_id = null, string? root_handle = null) =>
-        SendPointer(new MousePointerOptions { Action = "move", X = x, Y = y, HoverMs = hover_ms }, element_handle, automation_id, root_handle);
+        SendPointer(new MousePointerOptions
+        {
+            Action = "move",
+            X = x,
+            Y = y,
+            HoverMs = hover_ms
+        }, element_handle, automation_id, root_handle);
 
     [McpServerTool]
-    [Description("Send a real mouse wheel event over a visible element. delta is signed wheel units: 120 = one notch, positive scrolls up (or right with horizontal=true), negative down/left; nonzero range -12000..12000. Optional paired x/y are local WPF DIPs, default center. Moves the mouse and activates the app. Supports native hosted canvases. The app decides whether to scroll, zoom or ignore input; verify the result. STATE-CHANGING." + InputTargetDescription)]
+    [Description("Send a mouse wheel event over an element. Delivery follows wpf_set_input_mode (initially foreground). delta: nonzero -12000..12000 wheel units, 120=one notch, positive up/right, negative down/left. horizontal selects horizontal scrolling. Paired x/y are local WPF DIPs, default center. Background binds across calls until switching to foreground; requires a visible, non-minimized WPF window; HwndHost and separate popup HWNDs are unsupported. Verify app state. STATE-CHANGING." + InputTargetDescription)]
     public Task<MousePointerResult> WpfScroll(int delta, string? element_handle = null, bool horizontal = false, double? x = null, double? y = null,
         string? automation_id = null, string? root_handle = null) =>
-        SendPointer(new MousePointerOptions { Action = "scroll", X = x, Y = y, Delta = delta, Horizontal = horizontal }, element_handle, automation_id, root_handle);
+        SendPointer(new MousePointerOptions
+        {
+            Action = "scroll",
+            X = x,
+            Y = y,
+            Delta = delta,
+            Horizontal = horizontal
+        }, element_handle, automation_id, root_handle);
 
     private async Task<MousePointerResult> SendPointer(MousePointerOptions options, string? handle, string? automationId, string? rootHandle)
     {
@@ -482,7 +517,7 @@ public class WpfTools
     }
 
     [McpServerTool]
-    [Description("Drag using the real OS mouse: press, move gradually, release. Supply a source handle or automation_id and either target_handle, target_automation_id OR delta_x/delta_y (omitted delta axis is zero). target_root_handle scopes destination ID lookup independently of the source root_handle. start_x/start_y and target_x/target_y are optional coordinate pairs measured from the corresponding element's top-left in WPF DIPs; default is its center. Deltas are in the source element's local DIPs, including its transforms. button: left/right/middle. duration_ms: 100-10000, default 500. Brings the source window forward and moves the cursor. Both endpoints must be visible and unobstructed; no scrolling during the drag. Success reports input delivery, not drop acceptance: verify properties or a screenshot afterwards. STATE-CHANGING." + InputTargetDescription)]
+    [Description("Drag using the selected input mode: press, timed movement, release. Delivery follows wpf_set_input_mode (initially foreground). Provide target_handle/target_automation_id OR delta_x/delta_y. Target ID scope is target_root_handle. Paired start_x/start_y and target_x/target_y are local WPF DIPs, default center. Deltas are source-local DIPs. button: left/right/middle. duration_ms: 100-10000, default 500. Foreground endpoints must be unobstructed. Background requires one visible, non-minimized WPF HWND; cross-window drags, OLE DragDrop.DoDragDrop, HwndHost and popups are unsupported. OLE attempts are cancelled and fail the input command. Switch with wpf_set_input_mode to release the shared background binding. Verify app state. STATE-CHANGING." + InputTargetDescription)]
     public async Task<object> WpfDrag(
         string? element_handle = null, string? target_handle = null,
         double? delta_x = null, double? delta_y = null,
@@ -517,8 +552,16 @@ public class WpfTools
             element_type = result.ElementType,
             button = result.Button,
             duration_ms = result.DurationMs,
-            start = new { x = result.StartX, y = result.StartY },
-            end = new { x = result.EndX, y = result.EndY },
+            start = new
+            {
+                x = result.StartX,
+                y = result.StartY
+            },
+            end = new
+            {
+                x = result.EndX,
+                y = result.EndY
+            },
             coordinate_space = "screen_pixels",
             detail = result.Detail
         };
@@ -585,7 +628,7 @@ public class WpfTools
     }
 
     [McpServerTool]
-    [Description("Set the text/value of a UI element (TextBox, ComboBox, etc.). By default uses UI Automation IValueProvider.SetValue (clean, no focus needed, raises proper events). Falls back to setting TextBox.Text or PasswordBox.Password directly, or a reflected string 'Text' property. Set physical=true to focus the element and type via OS keyboard input (clears existing text with Ctrl+A/Delete first, then types each character; moves window focus). STATE-CHANGING." + InputTargetDescription)]
+    [Description("Set element text via UI Automation with property fallbacks by default. physical=true selects keyboard input (Ctrl+A/Delete then Unicode text). Keyboard delivery follows wpf_set_input_mode (initially foreground). Background requires a focusable element in a visible, non-minimized WPF window; HwndHost and separate popup HWNDs are unsupported. Verify the resulting text. STATE-CHANGING." + InputTargetDescription)]
     public async Task<object> WpfSetText(string text, string? element_handle = null, bool physical = false,
         string? automation_id = null, string? root_handle = null)
     {
@@ -601,7 +644,7 @@ public class WpfTools
     }
 
     [McpServerTool]
-    [Description("Send a keyboard shortcut / key combination to a WPF element (or to whatever currently has keyboard focus, when both element_handle and automation_id are omitted). Examples: 'Ctrl+S', 'Ctrl+Shift+F', 'Enter', 'Escape', 'F5', 'Alt+F4', 'Win+R'. Modifiers: Ctrl, Shift, Alt, Win. Keys: A-Z, 0-9, F1-F12, Enter, Esc, Tab, Space, Backspace, Delete, Insert, Home, End, PageUp, PageDown, Up, Down, Left, Right. Uses OS keyboard input - brings the target window to the foreground. STATE-CHANGING." + InputTargetDescription)]
+    [Description("Send a key combination: Ctrl+S, Ctrl+Shift+F5, Enter, Escape, etc. Modifiers: Ctrl/Shift/Alt/Win; keys: A-Z, 0-9, F1-F12, Enter, Esc, Tab, Space, Backspace, Delete, Insert, Home, End, PageUp/Down, arrows. Delivery follows wpf_set_input_mode (initially foreground). An explicit target is required for background keys. Background binds across calls until switching to foreground; requires a visible, non-minimized WPF window; system shortcuts, HwndHost and separate popup HWNDs are unsupported. STATE-CHANGING." + InputTargetDescription)]
     public async Task<object> WpfSendKeys(string keys, string? element_handle = null,
         string? automation_id = null, string? root_handle = null)
     {
@@ -622,7 +665,7 @@ public class WpfTools
     }
 
     [McpServerTool]
-    [Description("Capture a screenshot of the WPF window or a specific element. Returns an image that can be visually analyzed. Use element_handle to capture a specific element, or omit for the entire window. mode='auto' (default) uses screen capture when native HwndHost content is present, otherwise render; the response states the mode. Native content needs a visible unobstructed desktop. Explicit mode='render' rejects native content instead of returning a blank image, and re-renders the visual off-screen — works even if the window is covered, but CANNOT see open Popups, ComboBox dropdowns, context menus or tooltips. mode='screen' captures the actual on-screen pixels (GDI) and DOES include them — use it right after clicking something that opened a popup/menu; requires the window to be visible and unobstructed. Set full_content=true with render mode to capture all content in a ScrollViewer, including unscrolled and virtualized content; the original scroll position is restored.")]
+    [Description("Capture a screenshot of the WPF window or a specific element. Returns an image that can be visually analyzed. Use element_handle to capture a specific element, or omit for the entire window. mode='auto' (default) uses screen capture when native HwndHost content is present, otherwise render; the response states the mode. Screen capture requires foreground input mode and a visible unobstructed desktop. Explicit mode='render' rejects native content instead of returning a blank image, and re-renders the visual off-screen — works even if the window is covered, but CANNOT see open Popups, ComboBox dropdowns, context menus or tooltips. mode='screen' captures the actual on-screen pixels (GDI) and DOES include them — use it right after clicking something that opened a popup/menu; requires the window to be visible and unobstructed. Set full_content=true with render mode to capture all content in a ScrollViewer, including unscrolled and virtualized content; the original scroll position is restored.")]
     public async Task<CallToolResult> WpfCaptureScreenshot(
         string? element_handle = null,
         int max_width = 1920,

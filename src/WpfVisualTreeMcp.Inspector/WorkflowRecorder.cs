@@ -19,7 +19,7 @@ internal sealed class WorkflowRecorder
 
     internal WorkflowRecorder(TreeWalker walker) => _walker = walker;
 
-    internal RecordingState Control(string action, string? name)
+    internal RecordingState Control(string action, string? name, string inputMode = InputModes.Foreground)
     {
         switch (action)
         {
@@ -27,6 +27,9 @@ internal sealed class WorkflowRecorder
                 if (_workflow != null) throw new InvalidOperationException("A recording already exists. Export it, then clear it before starting another.");
                 if (name?.Length > 200) throw new ArgumentException("Recording name must not exceed 200 characters.");
                 _workflow = new RecordedWorkflow { Name = name ?? "Recorded workflow" };
+                if (inputMode == InputModes.Background)
+                    Commit(new WorkflowStep { Action = "SetInputMode",
+                        Arguments = WorkflowCodec.Arguments(new SetInputModeRequest { Mode = inputMode }) });
                 Active = true;
                 break;
             case "stop": Active = false; break;
@@ -44,6 +47,13 @@ internal sealed class WorkflowRecorder
         if (_workflow.Steps.Count >= WorkflowCodec.MaxSteps) throw new InvalidOperationException("Recording reached 100 steps. Stop and export it before continuing.");
         var request = WorkflowCodec.ParseLiveRequest(action, data);
         WorkflowCodec.ValidateRequest(request);
+        var step = CaptureStep(action, request);
+        ValidateProspectiveStep(step);
+        return step;
+    }
+
+    private WorkflowStep CaptureStep(string action, IpcRequest request)
+    {
         var handles = WorkflowCodec.Handles(request);
         // Keyboard input without an explicit handle still needs a reproducible
         // focus target. Never persist an implicit global keyboard destination.
@@ -60,11 +70,15 @@ internal sealed class WorkflowRecorder
             Action = action, Target = Capture(handles.target), Destination = Capture(handles.destination),
             Root = Capture(handles.root), Arguments = WorkflowCodec.Arguments(request)
         };
+        return step;
+    }
+
+    private void ValidateProspectiveStep(WorkflowStep step)
+    {
         // Check the complete prospective recording before performing an action.
-        _workflow.Steps.Add(step);
+        _workflow!.Steps.Add(step);
         try { WorkflowCodec.Validate(_workflow); }
         finally { _workflow.Steps.RemoveAt(_workflow.Steps.Count - 1); }
-        return step;
     }
 
     internal void Commit(WorkflowStep step) => _workflow!.Steps.Add(step);

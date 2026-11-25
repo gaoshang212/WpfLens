@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -178,6 +179,7 @@ public partial class InspectorService : IDisposable
         _resourceInspector = new ResourceInspector();
         _interactor = new ControlInteractor();
         _ipcServer = new IpcServer(processId, HandleRequestAsync);
+        Application.Current.Dispatcher.ShutdownStarted += (_, _) => QueueBackgroundCleanup();
 
         // Wire up property change notifications
         _propertyWatcher.PropertyChanged += OnPropertyChanged;
@@ -206,6 +208,7 @@ public partial class InspectorService : IDisposable
         _isRunning = false;
         _bindingAnalyzer.StopCapturingErrors();
         _ipcServer.Stop();
+        QueueBackgroundCleanup();
     }
 
     private async Task<IpcResponse> HandleRequestAsync(string requestType, JsonElement data)
@@ -214,66 +217,68 @@ public partial class InspectorService : IDisposable
         try
         {
             DebugLog($"HandleRequestAsync: requestType={requestType}");
-
-            if (Application.Current == null)
-            {
-                DebugLog("ERROR: Application.Current is NULL!");
-                return new GetVisualTreeResponse { Success = false, Error = "Application.Current is null" };
-            }
-
-            var fullContent = requestType == "CaptureScreenshot" &&
-                IpcSerializer.DeserializeRequestData<CaptureScreenshotRequest>(data)?.FullContent == true;
-            // Input sequences share the OS mouse. Fail fast instead of interleaving
-            // concurrent mutations or queuing them past the IPC timeout.
-            if (requestType is "Drag" or "TouchGesture" or "MousePointer" or "ClickElement" or "SelectItem" or "SetText" or "SendKeys"
-                or "ControlOperation" or "SetProperty" or "RevertProperty" or "Record" or "Replay" or "AssertElement"
-                || requestType == "Window" && IpcSerializer.DeserializeRequestData<WindowRequest>(data)!.Action != "list"
-                || fullContent || (_recorder.Active && WorkflowCodec.IsRecordable(requestType)))
-            {
-                ownsInteraction = _interactionGate.Wait(0);
-                if (!ownsInteraction)
-                    return new DragResponse { Success = false, Error = "Another interaction is in progress. Retry after it completes." };
-            }
-
-            if (requestType == "Replay")
-                return await HandleReplayAsync(data).ConfigureAwait(false);
-
-            WorkflowStep? recordedStep = null;
-            if (ownsInteraction && _recorder.Active && WorkflowCodec.IsRecordable(requestType)
-                && (requestType != "ControlOperation" || IpcSerializer.DeserializeRequestData<ControlOperationRequest>(data)!.Mutates))
-                recordedStep = await OnDispatcher(() => _recorder.Prepare(requestType, data), _inputShutdown.Token);
-
-            using var captureTimeout = fullContent
-                ? CancellationTokenSource.CreateLinkedTokenSource(_inputShutdown.Token) : null;
-            captureTimeout?.CancelAfter(FullContentCaptureTimeout);
-            var captureToken = captureTimeout?.Token ?? CancellationToken.None;
-
-            var result = await ExecuteOperationAsync(requestType, data, captureToken).ConfigureAwait(false);
-            if (ownsInteraction && result.Success && requestType != "Window")
-                await OnDispatcher(() => true, _inputShutdown.Token, System.Windows.Threading.DispatcherPriority.Background);
-            if (recordedStep != null && result.Success && (result is not WaitForElementResponse wait || wait.Matched)
-                && (result is not ControlOperationResponse control || !control.NotReady))
-                await OnDispatcher(() => { _recorder.Commit(recordedStep); return true; }, _inputShutdown.Token);
-
-            DebugLog($"HandleRequest completed successfully");
-            return result;
+            if (Application.Current == null) throw new InvalidOperationException("Application.Current is null");
+            ownsInteraction = EnterInteraction(requestType, data);
+            return await ExecuteRecordedRequestAsync(requestType, data, ownsInteraction).ConfigureAwait(false);
         }
-        catch (TimeoutException ex)
+        catch (Exception error)
         {
-            var error = GetTimeoutErrorMessage(ex);
-            DebugLog($"TIMEOUT in HandleRequestAsync: {error}");
-            return new GetVisualTreeResponse { Success = false, Error = error };
+            var message = DescribeRequestFailure(error);
+            DebugLog($"ERROR in HandleRequestAsync: {message}\n{error.StackTrace}");
+            return new GetVisualTreeResponse { Success = false, Error = message };
         }
-        catch (Exception ex)
-        {
-            DebugLog($"ERROR in HandleRequestAsync: {ex.Message}\n{ex.StackTrace}");
-            return new GetVisualTreeResponse { Success = false, Error = ex.Message };
-        }
-        finally
-        {
-            if (ownsInteraction) _interactionGate.Release();
-        }
+        finally { if (ownsInteraction) _interactionGate.Release(); }
     }
+
+    private static string DescribeRequestFailure(Exception error)
+    {
+        if (error is TimeoutException timeout) return GetTimeoutErrorMessage(timeout);
+        if (error is AggregateException aggregate)
+            return aggregate.Message + " " + string.Join("; ", aggregate.Flatten().InnerExceptions.Select(inner => inner.Message));
+        return error.Message;
+    }
+
+    private bool EnterInteraction(string type, JsonElement data)
+    {
+        if (!RequiresInteraction(type, data)) return false;
+        if (!_interactionGate.Wait(0)) throw new InvalidOperationException("Another interaction is in progress. Retry after it completes.");
+        return true;
+    }
+
+    private bool RequiresInteraction(string type, JsonElement data) =>
+        InputRequestMode.IsForegroundInputAction(type) || type is "SelectItem"
+            or "SetInputMode" or "ControlOperation" or "SetProperty" or "RevertProperty" or "Record" or "Replay" or "AssertElement"
+        || type == "Window" && IpcSerializer.DeserializeRequestData<WindowRequest>(data)!.Action != "list"
+        || IsFullContentCapture(type, data) || _recorder.Active && WorkflowCodec.IsRecordable(type);
+
+    private static bool IsFullContentCapture(string type, JsonElement data) =>
+        type == "CaptureScreenshot" && IpcSerializer.DeserializeRequestData<CaptureScreenshotRequest>(data)?.FullContent == true;
+
+    private async Task<IpcResponse> ExecuteRecordedRequestAsync(string type, JsonElement data, bool ownsInteraction)
+    {
+        if (type == "Replay") return await HandleReplayAsync(data).ConfigureAwait(false);
+        var step = await PrepareRecordingStepAsync(type, data, ownsInteraction).ConfigureAwait(false);
+        using var timeout = IsFullContentCapture(type, data) ? CancellationTokenSource.CreateLinkedTokenSource(_inputShutdown.Token) : null;
+        timeout?.CancelAfter(FullContentCaptureTimeout);
+        var result = await ExecuteOperationAsync(type, data, timeout?.Token ?? CancellationToken.None).ConfigureAwait(false);
+        if (ownsInteraction && result.Success && type != "Window")
+            await OnDispatcher(() => true, _inputShutdown.Token, System.Windows.Threading.DispatcherPriority.Background);
+        if (step != null && ShouldCommitStep(result))
+            await OnDispatcher(() => { _recorder.Commit(step); return true; }, _inputShutdown.Token);
+        return result;
+    }
+
+    private Task<WorkflowStep?> PrepareRecordingStepAsync(string type, JsonElement data, bool ownsInteraction)
+    {
+        if (!ownsInteraction || !_recorder.Active || !WorkflowCodec.IsRecordable(type) ||
+            type == "ControlOperation" && !IpcSerializer.DeserializeRequestData<ControlOperationRequest>(data)!.Mutates)
+            return Task.FromResult<WorkflowStep?>(null);
+        return OnDispatcher<WorkflowStep?>(() => _recorder.Prepare(type, data), _inputShutdown.Token);
+    }
+
+    private static bool ShouldCommitStep(IpcResponse result) => result.Success &&
+        (result is not WaitForElementResponse wait || wait.Matched) &&
+        (result is not ControlOperationResponse control || !control.NotReady);
 
     private async Task<IpcResponse> HandleDragAsync(JsonElement data, CancellationToken cancellationToken = default)
     {
@@ -336,46 +341,43 @@ public partial class InspectorService : IDisposable
     internal static string GetTimeoutErrorMessage(TimeoutException exception) =>
         exception is FullContentCaptureTimeoutException ? exception.Message : "Request timeout: UI thread is busy";
 
-    private IpcResponse HandleRequest(string requestType, JsonElement data, CancellationToken captureToken)
+    private IpcResponse HandleRequest(string requestType, JsonElement data, CancellationToken captureToken) => requestType switch
     {
-        return requestType switch
-        {
-            "GetCapabilities" => new GetCapabilitiesResponse { CoordinatePointerInput = true, AutomationIdTargeting = true, AutomationIdOptionalResolution = true, AdvancedAutomation = true, PropertySubscriptions = true },
-            "ResolveAutomationId" => HandleResolveAutomationId(data),
-            "Record" => HandleRecord(data),
-            "AssertElement" => HandleAssertElement(data),
-            "Report" => HandleReport(data),
-            "GetVisualTree" => HandleGetVisualTree(data),
-            "GetElementProperties" => HandleGetElementProperties(data),
-            "FindElements" => HandleFindElements(data),
-            "FindElementsDeep" => HandleFindElementsDeep(data),
-            "GetBindings" => HandleGetBindings(data),
-            "GetBindingErrors" => HandleGetBindingErrors(),
-            "GetResources" => HandleGetResources(data),
-            "GetStyles" => HandleGetStyles(data),
-            "HighlightElement" => HandleHighlightElement(data),
-            "GetLayoutInfo" => HandleGetLayoutInfo(data),
-            "WatchProperty" => HandleWatchProperty(data),
-            "UnwatchProperty" => HandleUnwatchProperty(data),
-            "ControlOperation" => HandleControlOperation(data),
-            "Window" => HandleWindow(data),
-            "ExportTree" => HandleExportTree(data),
-            "CaptureScreenshot" => HandleCaptureScreenshot(data, captureToken),
-            "GetDataContext" => HandleGetDataContext(data),
-            "ClearBindingErrors" => HandleClearBindingErrors(),
-            "SetProperty" => HandleSetProperty(data),
-            "RevertProperty" => HandleRevertProperty(data),
-            "EvaluateBinding" => HandleEvaluateBinding(data),
-            "ExplainTriggers" => HandleExplainTriggers(data),
-            "Snapshot" => HandleSnapshot(data),
-            "Diff" => HandleDiff(data),
-            "ClickElement" => HandleClickElement(data),
-            "SelectItem" => HandleSelectItem(data),
-            "SetText" => HandleSetText(data),
-            "SendKeys" => HandleSendKeys(data),
-            _ => new GetVisualTreeResponse { Success = false, Error = $"Unknown request: {requestType}" }
-        };
-    }
+        "GetCapabilities" => new GetCapabilitiesResponse { InputModeSwitch = true, CoordinatePointerInput = true, AutomationIdTargeting = true, AutomationIdOptionalResolution = true, AdvancedAutomation = true, PropertySubscriptions = true },
+        "ResolveAutomationId" => HandleResolveAutomationId(data),
+        "Record" => HandleRecord(data),
+        "AssertElement" => HandleAssertElement(data),
+        "Report" => HandleReport(data),
+        "GetVisualTree" => HandleGetVisualTree(data),
+        "GetElementProperties" => HandleGetElementProperties(data),
+        "FindElements" => HandleFindElements(data),
+        "FindElementsDeep" => HandleFindElementsDeep(data),
+        "GetBindings" => HandleGetBindings(data),
+        "GetBindingErrors" => HandleGetBindingErrors(),
+        "GetResources" => HandleGetResources(data),
+        "GetStyles" => HandleGetStyles(data),
+        "HighlightElement" => HandleHighlightElement(data),
+        "GetLayoutInfo" => HandleGetLayoutInfo(data),
+        "WatchProperty" => HandleWatchProperty(data),
+        "UnwatchProperty" => HandleUnwatchProperty(data),
+        "ControlOperation" => HandleControlOperation(data),
+        "Window" => HandleWindow(data),
+        "ExportTree" => HandleExportTree(data),
+        "CaptureScreenshot" => HandleCaptureScreenshot(data, captureToken),
+        "GetDataContext" => HandleGetDataContext(data),
+        "ClearBindingErrors" => HandleClearBindingErrors(),
+        "SetProperty" => HandleSetProperty(data),
+        "RevertProperty" => HandleRevertProperty(data),
+        "EvaluateBinding" => HandleEvaluateBinding(data),
+        "ExplainTriggers" => HandleExplainTriggers(data),
+        "Snapshot" => HandleSnapshot(data),
+        "Diff" => HandleDiff(data),
+        "ClickElement" => HandleClickElement(data),
+        "SelectItem" => HandleSelectItem(data),
+        "SetText" => HandleSetText(data),
+        "SendKeys" => HandleSendKeys(data),
+        _ => new GetVisualTreeResponse { Success = false, Error = $"Unknown request: {requestType}" }
+    };
 
     private IpcResponse HandleReport(JsonElement data)
     {
@@ -1196,7 +1198,7 @@ public partial class InspectorService : IDisposable
             var (base64, width, height) = request?.FullContent == true
                 ? screenshotCapture.CaptureFullContent(element, maxWidth, maxHeight, captureToken)
                 : mode == "screen"
-                    ? screenshotCapture.CaptureScreen(element, maxWidth, maxHeight)
+                    ? CaptureForegroundScreen(screenshotCapture, element, maxWidth, maxHeight)
                     : screenshotCapture.CaptureElement(element, maxWidth, maxHeight);
 
             return new CaptureScreenshotResponse

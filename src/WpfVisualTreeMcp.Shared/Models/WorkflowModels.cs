@@ -26,6 +26,8 @@ public class RecordedWorkflow
     public string Name { get; set; } = "Recorded workflow";
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public List<WorkflowStep> Steps { get; set; } = new();
+
+    public bool HasInputModeSwitch() => Steps.Any(step => step.Action == "SetInputMode");
 }
 
 public class RecordingState
