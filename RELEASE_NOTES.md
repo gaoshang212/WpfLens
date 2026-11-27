@@ -1,3 +1,17 @@
+# WpfLens 0.24.0
+
+Attach to a running .NET 6 WPF application on Windows x86 or x64 through MCP,
+the CLI or the C# SDK.
+
+## Installation
+
+```powershell
+dotnet tool install --global WpfLens.Mcp --version 0.24.0
+dotnet add package WpfLens.Automation --version 0.24.0
+```
+
+---
+
 # WpfLens 0.23.0
 
 Click, hover, scroll, drag or type in a visible WPF window while you work in

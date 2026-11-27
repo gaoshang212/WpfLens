@@ -65,7 +65,7 @@ jobs:
       run: dotnet pack src/WpfVisualTreeMcp.Automation/WpfVisualTreeMcp.Automation.csproj --no-build --configuration Release --output ./artifacts/packages
 
     - name: Publish Inspector DLL
-      run: dotnet publish src/WpfVisualTreeMcp.Inspector/WpfVisualTreeMcp.Inspector.csproj --configuration Release --framework net8.0-windows --output ./publish/inspector
+      run: dotnet publish src/WpfVisualTreeMcp.Inspector/WpfVisualTreeMcp.Inspector.csproj --configuration Release --framework net6.0-windows --output ./publish/inspector
 
     - name: Create release archive
       run: |

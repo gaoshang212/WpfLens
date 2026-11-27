@@ -1,6 +1,6 @@
 """Install the actual Automation nupkg in an isolated C# consumer and exercise it live.
 
-Run on Windows with the .NET 10 SDK, .NET 8/9/10 Desktop runtimes (x64 and x86)
+Run on Windows with the .NET 10 SDK, .NET 6/8/9/10 Desktop runtimes (x64 and x86)
 and .NET Framework 4.8.1. The matrix also verifies older application targets.
 --gestures additionally requires an unlocked interactive desktop.
 """

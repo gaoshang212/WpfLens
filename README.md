@@ -81,7 +81,7 @@ After setup, restart the client and ask:
 
 | Component | Supported environments |
 | --- | --- |
-| Target WPF application | .NET Framework 4.7.2, 4.8, 4.8.1; .NET 8, 9, 10 |
+| Target WPF application | .NET Framework 4.7.2, 4.8, 4.8.1; .NET 6, 8, 9, 10 |
 | C# SDK consumer | .NET 8, 9, 10; not .NET Framework |
 | Target architecture | Windows x86 and x64; an x64 server/test process can control either |
 
@@ -118,7 +118,7 @@ The MCP server exposes 39 tools through the same engine as the CLI. Browse the [
 ## C# test SDK
 
 ```powershell
-dotnet add package WpfLens.Automation --version 0.23.0
+dotnet add package WpfLens.Automation --version 0.24.0
 ```
 
 ```csharp
@@ -202,7 +202,7 @@ WPF tree access runs on the target UI Dispatcher. See the [architecture guide](d
 
 Use Visual Studio Developer PowerShell with the C++ v143 toolset and Windows SDK.
 
-The full compatibility suite also requires .NET 10 SDK, x64/x86 .NET 8/9/10 Desktop runtimes, and .NET Framework 4.8.1.
+The full compatibility suite also requires .NET 10 SDK, x64/x86 .NET 6/8/9/10 Desktop runtimes, and .NET Framework 4.8.1.
 
 ```powershell
 git clone https://github.com/gaoshang212/WpfLens.git
