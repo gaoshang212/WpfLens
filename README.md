@@ -118,7 +118,7 @@ The MCP server exposes 39 tools through the same engine as the CLI. Browse the [
 ## C# test SDK
 
 ```powershell
-dotnet add package WpfLens.Automation --version 0.23.0
+dotnet add package WpfLens.Automation --version 0.24.0
 ```
 
 ```csharp

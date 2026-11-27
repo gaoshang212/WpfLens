@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-27
+
+### Added
+
+- Attach directly to running .NET 6 WPF applications on Windows x86 and x64
+  through the MCP server, CLI or C# SDK.
+
 ## [0.23.0] - 2026-11-25
 
 ### Added

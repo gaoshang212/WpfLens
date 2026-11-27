@@ -6,13 +6,13 @@
     "url": "https://github.com/gaoshang212/WpfLens",
     "source": "github"
   },
-  "version": "0.23.0",
+  "version": "0.24.0",
   "packages": [
     {
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "WpfLens.Mcp",
-      "version": "0.23.0",
+      "version": "0.24.0",
       "transport": {
         "type": "stdio"
       }

@@ -116,7 +116,7 @@ MCP 服务提供 39 个工具，与 CLI 共用同一引擎。名称及用途见 
 ## C# 测试 SDK
 
 ```powershell
-dotnet add package WpfLens.Automation --version 0.23.0
+dotnet add package WpfLens.Automation --version 0.24.0
 ```
 
 ```csharp
