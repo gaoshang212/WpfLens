@@ -79,7 +79,7 @@ codex plugin add wpflens@WpfLens
 
 | 组件 | 支持范围 |
 | --- | --- |
-| 目标 WPF 应用 | .NET Framework 4.7.2、4.8、4.8.1；.NET 8、9、10 |
+| 目标 WPF 应用 | .NET Framework 4.7.2、4.8、4.8.1；.NET 6、8、9、10 |
 | C# SDK 使用方 | .NET 8、9、10，不支持 .NET Framework 测试项目 |
 | 目标架构 | Windows x86 和 x64；x64 服务或测试进程可控制两种架构的应用 |
 
@@ -200,7 +200,7 @@ WPF 树访问在目标 UI Dispatcher 上执行，组件及线程机制见[架构
 
 使用 Visual Studio Developer PowerShell，并安装 C++ v143 工具集和 Windows SDK。
 
-完整兼容性测试还需要 .NET 10 SDK、x64/x86 的 .NET 8/9/10 Desktop Runtime，以及 .NET Framework 4.8.1。
+完整兼容性测试还需要 .NET 10 SDK、x64/x86 的 .NET 6/8/9/10 Desktop Runtime，以及 .NET Framework 4.8.1。
 
 ```powershell
 git clone https://github.com/gaoshang212/WpfLens.git

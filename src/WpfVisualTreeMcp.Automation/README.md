@@ -9,7 +9,7 @@ Inspector, x64/x86 native bootstrapper and x86 injection helper. It talks direct
 to the same inspection engine used by MCP and the CLI; neither server needs to run.
 
 The test project targets .NET 8, 9 or 10 and runs as x64 or x86 on Windows. The
-target WPF application may use .NET Framework 4.7.2, 4.8, 4.8.1 or .NET 8, 9, 10.
+target WPF application may use .NET Framework 4.7.2, 4.8, 4.8.1 or .NET 6, 8, 9, 10.
 The test project and application do not need to use the same framework. The SDK
 ships a `net8.0` library usable by .NET 9/10 consumers; a .NET Framework test
 project cannot reference it directly.
@@ -232,10 +232,10 @@ An older loaded Inspector requires restarting the target before the new features
 
 Verify the installed package and its exported tests with
 `python scripts/test_automation_package.py --packages artifacts/packages`.
-This runs inspection/input/export/replay against all six supported target frameworks
+This runs inspection/input/export/replay against all seven supported target frameworks
 on x86 and x64. Advanced grid/tree, validation, notification, modal-window and
 lifecycle scenarios run from .NET 8, 9 and 10 consumers against every target.
-Build the suite with the .NET 10 SDK and install .NET 8/9/10 Desktop runtimes for
+Build the suite with the .NET 10 SDK and install .NET 6/8/9/10 Desktop runtimes for
 both architectures plus .NET Framework 4.8.1. Framework 4.x target builds run on
 the installed 4.8.1 runtime; the suite does not install older runtimes side by side.
 Add `--gestures` on an unlocked desktop for real mouse drag and touch checks.

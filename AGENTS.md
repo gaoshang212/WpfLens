@@ -49,7 +49,7 @@ MCP Server (.NET 8.0)
     └─ NamedPipeBridge (IPC)
         ↓ [Named Pipes: wpf_inspector_{pid}]
 Target WPF Application (.NET Framework)
-    └─ Inspector DLL (.NET Framework 4.7.2/4.8 or .NET 8)
+    └─ Inspector DLL (.NET Framework 4.7.2/4.8 or .NET 6)
         ├─ TreeWalker (visual tree navigation + adorner/popup traversal)
         ├─ ScreenshotCapture (RenderTargetBitmap element capture)
         ├─ PropertyReader (dependency properties)
@@ -199,7 +199,7 @@ The Inspector strips UTF-8 BOM (0xEF 0xBB 0xBF) before JSON parsing to prevent d
   virtualized controls, restoring offsets in `finally`. It uses the interaction
   gate, bounded tiles/memory and a cooperative 25-second deadline. The live matrix
   (`tests/run-integration-tests.ps1 -ServerDirectory <publish directory>`) verifies
-  net472/net48/net8 x86/x64, injection/self-hosting and scroll restoration.
+  net472/net48/net6/net8 x86/x64, injection/self-hosting and scroll restoration.
 
 ### Logging
 - Server logs: `%LOCALAPPDATA%\WpfLens\logs\mcp-server-YYYYMMDD.log`
@@ -210,9 +210,9 @@ The Inspector strips UTF-8 BOM (0xEF 0xBB 0xBF) before JSON parsing to prevent d
 ## WPF App Inspection Modes
 
 ### Auto-Injection Mode
-Use `wpf_attach(process_id=<pid>, auto_inject=true)` to inject the Inspector into any running .NET Framework WPF app. Requires:
+Use `wpf_attach(process_id=<pid>, auto_inject=true)` to inject the Inspector into any running .NET Framework or .NET 6/8/9/10 WPF app. Requires:
 - Native bootstrapper DLL in `publish/native/x64/` (or x86)
-- Target process must be .NET Framework (CLR hosting)
+- Target process must be .NET Framework (CLR hosting) or .NET 6/8/9/10
 - Architecture detection is automatic (x64 vs x86)
 
 ### Self-Hosted Mode

@@ -20,7 +20,7 @@ without it, attach only connects to an Inspector that is already running.
    selects the target runtime:
    - **.NET Framework 4.7.2+:** CLR hosting APIs call
      `InspectorService.Initialize(string)` in the `net472` Inspector.
-   - **CoreCLR (.NET 8+):** hostfxr loads the `net8.0-windows` Inspector from
+   - **CoreCLR (.NET 6 or 8+):** hostfxr loads the `net6.0-windows` Inspector from
      `coreclr/` and invokes `InspectorService.InitializeUnmanaged`.
 6. The server waits up to ten seconds for the Inspector pipe. Loading a DLL
    alone does not count as a successful attach.
@@ -40,8 +40,8 @@ server/
       WpfVisualTreeMcp.Shared.dll        # net472
       System.Text.Json.dll              # plus its net472 dependencies
       coreclr/
-        WpfVisualTreeMcp.Inspector.dll   # net8.0-windows
-        WpfVisualTreeMcp.Shared.dll      # net8.0
+        WpfVisualTreeMcp.Inspector.dll   # net6.0-windows
+        WpfVisualTreeMcp.Shared.dll      # net6.0
         WpfVisualTreeMcp.Inspector.coreclr.runtimeconfig.json
     x86/
       ...                               # same payload, x86 bootstrapper

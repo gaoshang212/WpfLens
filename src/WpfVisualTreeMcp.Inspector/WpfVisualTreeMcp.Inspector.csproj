@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net472;net48;net8.0-windows</TargetFrameworks>
+    <TargetFrameworks>net472;net48;net6.0-windows;net8.0-windows</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>WpfVisualTreeMcp.Inspector</RootNamespace>
     <AssemblyName>WpfVisualTreeMcp.Inspector</AssemblyName>
     <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <UseWPF Condition="'$(TargetFramework)' == 'net8.0-windows'">true</UseWPF>
+    <UseWPF Condition="'$(TargetFramework)' == 'net6.0-windows' Or '$(TargetFramework)' == 'net8.0-windows'">true</UseWPF>
   </PropertyGroup>
 
   <!-- .NET Framework 4.7.2/4.8: explicit WPF references -->
-  <!-- (net8.0-windows pulls these in automatically via UseWPF) -->
+  <!-- (net6.0-windows/net8.0-windows pull these in automatically via UseWPF) -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net48'">
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gosf.Input.Automation" Version="0.1.1" GeneratePathProperty="true" />
+    <PackageReference Include="Gosf.Input.Automation" Version="0.2.0" GeneratePathProperty="true" />
     <ProjectReference Include="..\WpfVisualTreeMcp.Shared\WpfVisualTreeMcp.Shared.csproj" />
     <InternalsVisibleTo Include="WpfVisualTreeMcp.IntegrationTests" />
   </ItemGroup>
